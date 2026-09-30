@@ -1,5 +1,5 @@
 {
-  "name": "anot",
+  "name": "poke-ui",
   "version": "0.1.0",
   "private": true,
   "description": "Chromium extension: annotate page elements and copy them as markdown.",

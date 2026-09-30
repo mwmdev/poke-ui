@@ -1,4 +1,4 @@
-# anot
+# Poke UI
 
 Chromium MV3 extension (plain JS, no build step). Annotate page elements, then copy the notes as markdown for your AI harness.
 
@@ -6,10 +6,16 @@ Chromium MV3 extension (plain JS, no build step). Annotate page elements, then c
 
 1. `chrome://extensions` → Developer mode → Load unpacked → select this folder.
 2. Click the toolbar icon or press `Alt+Shift+A` to toggle annotation mode.
-3. Click an element, write a note, Save. Click a numbered marker to edit, copy or delete it.
-4. `Copy all` in the panel copies every note on the page; `Copy` in a note's editor copies just that one.
+3. Click an element, type a note, press Enter to save (Esc cancels). Click a numbered marker or a note in the panel to edit it.
+4. Hover a note in the panel to copy or delete just that note; `Copy all` and `Clear all` in the panel act on every note on the page.
 
 Notes are stored per page URL (without hash) in `chrome.storage.local` and survive reloads.
+
+The colored dot in the panel picks the marker color (five choices). It applies to every page and to the toolbar icon.
+
+## Icons
+
+`icons/build.sh` regenerates the logo and the toolbar icons (one set per marker color). It needs `node` and `inkscape`.
 
 ## Test
 

@@ -1,6 +1,6 @@
 (() => {
-  if (window.__anot) return;
-  window.__anot = true;
+  if (window.__pokeui) return;
+  window.__pokeui = true;
 
   const SNIPPET_MAX = 400;
   const STYLE_PROPS = [
@@ -8,15 +8,26 @@
     'margin', 'padding', 'border', 'border-radius', 'display', 'position', 'width', 'height',
   ];
 
+  // Each color needs toolbar icons: add it to icons/build.sh too.
+  const COLORS = [
+    ['Red', '#e5484d'], ['Orange', '#f76b15'], ['Green', '#30a46c'], ['Blue', '#0090ff'], ['Purple', '#8e4ec6'],
+  ];
+  const COLOR_KEY = 'markerColor'; // global: applies to the markers on every page
+
   let notes = [];
   let active = false;
+  let color = COLORS[0][1];
+  let pickerOpen = false;
 
   const pageKey = () => 'notes:' + location.href.split('#')[0];
 
   // ---------- storage ----------
   async function load() {
     const key = pageKey();
-    notes = (await chrome.storage.local.get(key))[key] || [];
+    const stored = await chrome.storage.local.get([key, COLOR_KEY]);
+    notes = stored[key] || [];
+    color = stored[COLOR_KEY] || COLORS[0][1];
+    applyColor();
   }
   const save = () => chrome.storage.local.set({ [pageKey()]: notes });
 
@@ -139,6 +150,13 @@
     btn.setAttribute('aria-label', label);
     btn.title = label;
   }
+  const grip = () => {
+    const g = h('span', { class: 'grip', 'aria-label': 'Move', title: 'Move' });
+    g.innerHTML = '<svg viewBox="0 0 24 24">'
+      + [6, 12, 18].map((y) => `<circle cx="9" cy="${y}" r="1.8"/><circle cx="15" cy="${y}" r="1.8"/>`).join('')
+      + '</svg>';
+    return g;
+  };
   function iconBtn(label, icon, attrs = {}) {
     const b = h('button', attrs);
     setIcon(b, icon, label);
@@ -149,31 +167,45 @@
     [hidden] { display: none !important; }
     * { box-sizing: border-box; font: 13px/1.4 system-ui, sans-serif; }
     .marker { position: fixed; width: 20px; height: 20px; padding: 0; border: 2px solid #fff; border-radius: 50%;
-      background: #e5484d; color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; pointer-events: auto; }
+      background: var(--pokeui-color); color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; pointer-events: auto; }
     .highlight { position: fixed; border: 2px solid #3b82f6; background: rgba(59,130,246,.15); pointer-events: none; }
     .panel, .editor { position: fixed; background: #1c1c1f; color: #f4f4f5; border-radius: 8px; pointer-events: auto;
       box-shadow: 0 8px 24px rgba(0,0,0,.35); }
-    .panel { right: 16px; bottom: 16px; width: 260px; max-height: 50vh; overflow: auto; padding: 8px; }
-    .bar, .actions { display: flex; gap: 6px; }
-    .panel .bar { margin-bottom: 6px; align-items: center; }
-    .grip { cursor: grab; padding: 0 4px; user-select: none; touch-action: none; }
+    .panel { right: 16px; top: 16px; width: 260px; max-height: 50vh; overflow: auto; padding: 8px; }
+    .bar { display: flex; gap: 6px; }
+    .panel .bar { align-items: center; }
+    .panel > * + * { margin-top: 6px; }
+    .done { margin-left: auto; }
+    .grip { display: flex; align-items: center; height: 24px; cursor: grab; user-select: none; touch-action: none; }
+    .grip svg { width: 16px; height: 16px; fill: currentColor; pointer-events: none; }
+    .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; background: var(--pokeui-color); }
+    .swatches { display: flex; gap: 8px; padding: 2px 4px; }
+    .swatch { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
+    .swatch[aria-pressed="true"] { border-color: #fff; }
     button { display: inline-flex; align-items: center; justify-content: center; color: inherit; background: #3f3f46;
       border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
     button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;
       stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
     button:disabled { opacity: .4; cursor: default; }
-    .row { display: block; width: 100%; margin-top: 4px; text-align: left; background: #27272a;
+    .row { display: flex; align-items: center; gap: 2px; padding-right: 4px; background: #27272a; border-radius: 6px; }
+    .row .open { flex: 1; min-width: 0; display: block; text-align: left; background: none;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .row.missing { opacity: .5; text-decoration: line-through; }
+    .row.missing .open { opacity: .5; text-decoration: line-through; }
+    .row .mini { padding: 4px; background: none; opacity: 0; }
+    .row:hover .mini, .row:focus-within .mini { opacity: 1; }
+    .row .mini:hover, .row .mini:focus-visible { background: #3f3f46; }
     .editor { width: 280px; padding: 8px; }
-    .editor textarea { display: block; width: 100%; height: 72px; margin-bottom: 6px; resize: vertical; padding: 6px;
+    .editor .field { position: relative; }
+    .editor input { display: block; width: 100%; padding: 6px 30px 6px 8px;
       color: inherit; background: #27272a; border: 1px solid #52525b; border-radius: 6px; }
-    .editor .save { background: #3b82f6; }
-    .editor .delete, .armed { background: #b42318; }
-    .editor .delete { margin-left: auto; }
+    .enter-hint { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex;
+      color: #71717a; pointer-events: none; }
+    .enter-hint svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round; }
+    .armed { background: #b42318; }
   `;
 
-  const host = document.createElement('anot-root');
+  const host = document.createElement('poke-ui-root');
   host.style.cssText = 'all: initial; position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;';
   const shadow = host.attachShadow({ mode: 'open' });
   const markersEl = h('div');
@@ -182,6 +214,8 @@
   const editorEl = h('div', { class: 'editor', hidden: true });
   shadow.append(h('style', {}, CSS_TEXT), markersEl, highlightEl, panelEl, editorEl);
   document.documentElement.append(host);
+  const applyColor = () => host.style.setProperty('--pokeui-color', color);
+  applyColor();
 
   const firstLine = (t) => t.split('\n')[0];
   const indexOf = (id) => notes.findIndex((n) => n.id === id);
@@ -214,12 +248,41 @@
       closeEditor();
       render();
     });
+    const colorBtn = h('button', {
+      class: 'color', 'aria-label': 'Marker color', title: 'Marker color', 'aria-expanded': String(pickerOpen),
+      onclick: () => { pickerOpen = !pickerOpen; render(); },
+    }, h('span', { class: 'dot' }));
+    const swatches = h('div', { class: 'swatches' }, ...COLORS.map(([name, value]) => h('button', {
+      class: 'swatch', style: `background: ${value}`, 'aria-label': name, title: name,
+      'aria-pressed': String(value === color),
+      onclick: async () => {
+        color = value;
+        pickerOpen = false;
+        applyColor();
+        render();
+        await chrome.storage.local.set({ [COLOR_KEY]: value });
+      },
+    })));
     panelEl.replaceChildren(
-      h('div', { class: 'bar' }, h('span', { class: 'grip', 'aria-label': 'Move', title: 'Move' }, '⠿'),
-        copyAllBtn, clearAllBtn, iconBtn('Done', 'close', { onclick: () => setActive(false) })),
-      ...notes.map((n, i) => h('button', {
-        class: 'row' + (resolve(n.selector) ? '' : ' missing'), onclick: () => openEditor({ id: n.id }),
-      }, `${i + 1}  ${firstLine(n.text)}`)),
+      h('div', { class: 'bar' }, grip(),
+        colorBtn, copyAllBtn, clearAllBtn, iconBtn('Done', 'close', { class: 'done', onclick: () => setActive(false) })),
+      ...(pickerOpen ? [swatches] : []),
+      ...notes.map((n, i) => {
+        const copyBtn = iconBtn(`Copy note ${i + 1}`, 'copy', { class: 'mini' });
+        copyBtn.addEventListener('click', () => copy(formatNote(n, i), copyBtn));
+        return h('div', { class: 'row' + (resolve(n.selector) ? '' : ' missing') },
+          h('button', { class: 'open', onclick: () => openEditor({ id: n.id }) }, `${i + 1}  ${firstLine(n.text)}`),
+          copyBtn,
+          iconBtn(`Delete note ${i + 1}`, 'delete', {
+            class: 'mini',
+            onclick: async () => {
+              notes = notes.filter((x) => x.id !== n.id);
+              await save();
+              if (editorEl.dataset.id === n.id) closeEditor();
+              render();
+            },
+          }));
+      }),
     );
   }
 
@@ -260,20 +323,33 @@
       m.style.left = Math.max(0, r.left - 10) + 'px';
       m.style.top = Math.max(0, r.top - 10) + 'px';
     }
+    if (selected) highlight(selected);
+  }
+
+  // Blue box around an element: follows the hover in annotation mode, stays on the element whose note is open.
+  let selected = null;
+  function highlight(el) {
+    highlightEl.hidden = !el || !el.isConnected;
+    if (highlightEl.hidden) return;
+    const r = el.getBoundingClientRect();
+    Object.assign(highlightEl.style, {
+      left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px',
+    });
   }
 
   function openEditor({ id = null, target = null }) {
     const existing = id && notes[indexOf(id)];
     const anchor = target || (existing && resolve(existing.selector));
 
-    const ta = h('textarea', { 'aria-label': 'Note', placeholder: 'Note' });
-    ta.value = existing ? existing.text : '';
-    ta.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); onSave(); }
+    // Enter saves; Esc cancels via the window-level keydown handler. Copy and delete live on the panel rows.
+    const input = h('input', { type: 'text', 'aria-label': 'Note', placeholder: 'Note', autocomplete: 'off' });
+    input.value = existing ? existing.text : '';
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); onSave(); }
     });
 
     async function onSave() {
-      const text = ta.value.trim();
+      const text = input.value.trim();
       if (!text) return;
       const i = indexOf(id);
       if (i >= 0) notes[i] = { ...notes[i], text };
@@ -283,40 +359,31 @@
       render();
     }
 
-    const copyBtn = iconBtn('Copy', 'copy');
-    copyBtn.addEventListener('click', () => copy(formatNote(notes[indexOf(id)], indexOf(id)), copyBtn));
+    editorEl.dataset.id = id || '';
+    const enterHint = h('span', { class: 'enter-hint', 'aria-hidden': 'true', title: 'Enter to save' });
+    enterHint.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 10l-5 5 5 5M20 4v7a4 4 0 0 1-4 4H4"/></svg>';
+    editorEl.replaceChildren(h('div', { class: 'field' }, input, enterHint));
 
-    editorEl.replaceChildren(ta, h('div', { class: 'actions' },
-      iconBtn('Save', 'save', { class: 'save', onclick: onSave }),
-      existing && copyBtn,
-      iconBtn('Cancel', 'close', { onclick: closeEditor }),
-      existing && iconBtn('Delete', 'delete', {
-        class: 'delete',
-        onclick: async () => {
-          notes = notes.filter((n) => n.id !== id);
-          await save();
-          closeEditor();
-          render();
-        },
-      }),
-    ));
-
-    const r = anchor ? anchor.getBoundingClientRect() : { left: 16, top: 16, bottom: 16 };
-    const w = 280;
-    editorEl.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
-    editorEl.style.top = (r.bottom + 8 + 150 > innerHeight ? Math.max(8, r.top - 158) : r.bottom + 8) + 'px';
+    selected = anchor;
+    highlight(selected);
     editorEl.hidden = false;
-    ta.focus();
+    const r = anchor ? anchor.getBoundingClientRect() : { left: 16, top: 16, bottom: 16 };
+    const { offsetWidth: w, offsetHeight: eh } = editorEl;
+    editorEl.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+    editorEl.style.top = (r.bottom + 8 + eh > innerHeight ? Math.max(8, r.top - eh - 8) : r.bottom + 8) + 'px';
+    input.focus();
   }
 
   function closeEditor() {
     editorEl.hidden = true;
     editorEl.replaceChildren();
+    selected = null;
+    highlight(null);
   }
 
   function setActive(v) {
     active = v;
-    highlightEl.hidden = true;
+    highlight(selected);
     if (!v) closeEditor();
     render();
   }
@@ -338,12 +405,8 @@
     openEditor({ target: e.target });
   }, true);
   addEventListener('mousemove', (e) => {
-    if (!active || isOwn(e)) return;
-    const r = e.target.getBoundingClientRect();
-    Object.assign(highlightEl.style, {
-      left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px',
-    });
-    highlightEl.hidden = false;
+    if (!active || selected || isOwn(e)) return;
+    highlight(e.target);
   }, true);
   addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
@@ -364,14 +427,18 @@
   addEventListener('resize', schedule);
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    const change = area === 'local' && changes[pageKey()];
-    if (!change) return;
-    notes = change.newValue || [];
-    render();
+    if (area !== 'local') return;
+    if (changes[COLOR_KEY]) {
+      color = changes[COLOR_KEY].newValue || COLORS[0][1];
+      applyColor();
+    }
+    const change = changes[pageKey()];
+    if (change) notes = change.newValue || [];
+    if (change || changes[COLOR_KEY]) render();
   });
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg && msg.type === 'anot:toggle') {
+    if (msg && msg.type === 'pokeui:toggle') {
       setActive(!active);
       sendResponse({ active });
     }
