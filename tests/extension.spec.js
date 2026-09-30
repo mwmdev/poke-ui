@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const EXTENSION = path.resolve(__dirname, '..');
+const { prepareExtension } = require('./extension-dir');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture', 'index.html'));
 
 const test = base.extend({
@@ -20,14 +20,16 @@ const test = base.extend({
 
   context: async ({}, use) => {
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'poke-ui-'));
+    const extension = prepareExtension();
     const context = await chromium.launchPersistentContext(userDataDir, {
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: [`--disable-extensions-except=${EXTENSION}`, `--load-extension=${EXTENSION}`],
+      args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
     });
     await use(context);
     await context.close();
     fs.rmSync(userDataDir, { recursive: true, force: true });
+    fs.rmSync(extension, { recursive: true, force: true });
   },
 });
 
@@ -35,6 +37,8 @@ const readClipboard = (page) => page.evaluate(() => navigator.clipboard.readText
 const selectorsIn = (markdown) => [...markdown.matchAll(/^- Selector: `([^`]+)`$/gm)].map((m) => m[1]);
 
 test('annotate, persist, edit, delete, copy one and all', async ({ context, server }) => {
+  // The extension has no clipboardWrite permission: Chromium allows writes from a clicked button by default.
+  // Playwright's explicit grant list switches every unlisted permission off, so clipboard-write is listed here.
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(server).origin });
   let [worker] = context.serviceWorkers();
   worker ||= await context.waitForEvent('serviceworker');
@@ -69,8 +73,14 @@ test('annotate, persist, edit, delete, copy one and all', async ({ context, serv
   await expect(markers).toHaveCount(2);
   expect(await page.title()).toBe('poke-ui fixture');
 
-  // Notes survive a reload.
+  // Notes survive a reload, but the pins stay hidden until the extension is activated on the page again.
   await page.reload();
+  await expect(markers).toHaveCount(0);
+  await toggle();
+  await expect(markers).toHaveCount(2);
+  await expect(page.locator('poke-ui-root .panel')).toBeVisible();
+  await toggle();
+  await expect(page.locator('poke-ui-root .panel')).toBeHidden();
   await expect(markers).toHaveCount(2);
 
   // Clicking a pin while the panel is hidden opens the note and the panel.
@@ -169,10 +179,11 @@ test('clear all needs a second click and removes every note', async ({ context, 
   const page = await context.newPage();
   await page.goto(server);
   await page.bringToFront();
-  await worker.evaluate(async () => {
+  const toggle = () => worker.evaluate(async () => {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     await toggleTab(tab);
   });
+  await toggle();
   const markers = page.locator('poke-ui-root .marker:visible');
   for (const [id, text] of [['buy', 'one'], ['title', 'two']]) {
     await page.locator(`[data-testid="${id}"]`).click();
@@ -187,7 +198,9 @@ test('clear all needs a second click and removes every note', async ({ context, 
   await expect(markers).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Clear all', exact: true })).toBeDisabled();
   await page.reload();
+  await toggle();
   await expect(markers).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Clear all', exact: true })).toBeDisabled();
 });
 
 test('marker color is chosen from five and applies to every page', async ({ context, server }) => {
@@ -229,7 +242,10 @@ test('marker color is chosen from five and applies to every page', async ({ cont
   await expect.poll(() => markerColor(a)).toBe('rgb(48, 164, 108)');
 
   await a.reload();
+  await a.bringToFront();
+  await toggle();
   await expect.poll(() => markerColor(a)).toBe('rgb(48, 164, 108)');
+  await b.bringToFront();
   await b.getByRole('button', { name: 'Marker color' }).click();
   await expect(b.getByRole('button', { name: 'Green', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
@@ -423,4 +439,45 @@ test('theme button cycles Auto, Light and Dark and applies everywhere', async ({
   await expect(themeBtn(a, 'Auto')).toBeVisible();
   await expect.poll(() => bg(a, 'panel')).toBe(LIGHT);
   await expect.poll(() => bg(b, 'panel')).toBe(LIGHT);
+});
+
+test('notes follow in-page navigation', async ({ context, server }) => {
+  let [worker] = context.serviceWorkers();
+  worker ||= await context.waitForEvent('serviceworker');
+  const page = await context.newPage();
+  await page.goto(server + 'a');
+  await page.bringToFront();
+  const toggle = () => worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    await toggleTab(tab);
+  });
+  const markers = page.locator('poke-ui-root .marker:visible');
+  const rows = page.locator('poke-ui-root .row');
+  const addNote = async (testid, text) => {
+    await page.locator(`[data-testid="${testid}"]`).click();
+    await page.getByRole('textbox', { name: 'Note' }).fill(text);
+    await page.getByRole('textbox', { name: 'Note' }).press('Enter');
+  };
+
+  await toggle();
+  await addNote('buy', 'on a');
+  await expect(markers).toHaveCount(1);
+
+  // pushState keeps the script alive: page a's note must neither show on /b nor be overwritten by /b's.
+  await page.evaluate(() => history.pushState({}, '', '/b'));
+  await expect(markers).toHaveCount(0);
+  await expect(rows).toHaveCount(0);
+  await addNote('title', 'on b');
+  await expect(markers).toHaveCount(1);
+
+  await page.goBack();
+  await expect(markers).toHaveCount(1);
+  await expect(rows).toHaveText(['1  on a']);
+
+  const stored = await worker.evaluate(() => chrome.storage.local.get(null));
+  const textsAt = (suffix) => Object.entries(stored)
+    .filter(([key]) => key.endsWith(suffix))
+    .flatMap(([, list]) => list.map((note) => note.text));
+  expect(textsAt('/a')).toEqual(['on a']);
+  expect(textsAt('/b')).toEqual(['on b']);
 });

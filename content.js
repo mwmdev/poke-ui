@@ -24,18 +24,21 @@
   let pickerOpen = false;
 
   const pageKey = () => 'notes:' + location.href.split('#')[0];
+  let noteKey = pageKey(); // the storage key the in-memory notes belong to
 
   // ---------- storage ----------
   async function load() {
     const key = pageKey();
+    noteKey = key;
     const stored = await chrome.storage.local.get([key, COLOR_KEY, THEME_KEY]);
+    if (key !== noteKey) return; // navigated again while loading
     notes = stored[key] || [];
     color = stored[COLOR_KEY] || COLORS[0][1];
     theme = stored[THEME_KEY] || THEMES[0];
     applyColor();
     applyTheme();
   }
-  const save = () => chrome.storage.local.set({ [pageKey()]: notes });
+  const save = () => chrome.storage.local.set({ [noteKey]: notes });
 
   // ---------- element context ----------
   const resolve = (selector) => {
@@ -476,6 +479,17 @@
   addEventListener('scroll', schedule, true);
   addEventListener('resize', schedule);
 
+  // In-page navigation (pushState/back/forward) keeps this script alive: switch to the new page's notes.
+  // Page pushState calls can't be observed from this isolated world, so poll.
+  setInterval(async () => {
+    if (pageKey() === noteKey) return;
+    closeEditor();
+    notes = [];
+    render();
+    await load();
+    render();
+  }, 300);
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes[COLOR_KEY]) {
@@ -486,7 +500,7 @@
       theme = changes[THEME_KEY].newValue || THEMES[0];
       applyTheme();
     }
-    const change = changes[pageKey()];
+    const change = changes[noteKey];
     if (change) notes = change.newValue || [];
     if (change || changes[COLOR_KEY] || changes[THEME_KEY]) render();
   });

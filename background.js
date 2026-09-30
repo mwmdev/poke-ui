@@ -5,7 +5,7 @@ async function toggleTab(tab) {
   try {
     await chrome.tabs.sendMessage(tab.id, msg);
   } catch {
-    // Tab was open before the extension was installed/reloaded: inject once, then retry.
+    // Not injected in this page yet (first use since load): inject, then toggle.
     try {
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
       await chrome.tabs.sendMessage(tab.id, msg);

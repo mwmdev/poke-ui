@@ -4,7 +4,9 @@
   "private": true,
   "description": "Chromium extension: annotate page elements and copy them as markdown.",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "package": "bash scripts/package.sh",
+    "store-assets": "node store/shoot.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"
