@@ -73,14 +73,15 @@ test('annotate, persist, edit, delete, copy one and all', async ({ context, serv
   await page.reload();
   await expect(markers).toHaveCount(2);
 
-  // Update note 1 from its marker; the editor is just the text field.
+  // Clicking a pin while the panel is hidden opens the note and the panel.
+  await expect(page.locator('poke-ui-root .panel')).toBeHidden();
   await marker(1).click();
+  await expect(page.locator('poke-ui-root .panel')).toBeVisible();
   await expect(page.locator('poke-ui-root .editor button')).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Note' }).fill('Make the button green');
   await page.getByRole('textbox', { name: 'Note' }).press('Enter');
 
   // Delete note 2 from its panel row, then add a third note.
-  await toggle();
   await button('Delete note 2').click();
   await expect(markers).toHaveCount(1);
   await expect(page.locator('poke-ui-root .row')).toHaveText(['1  Make the button green']);

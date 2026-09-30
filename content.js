@@ -167,7 +167,8 @@
     [hidden] { display: none !important; }
     * { box-sizing: border-box; font: 13px/1.4 system-ui, sans-serif; }
     .marker { position: fixed; width: 20px; height: 20px; padding: 0; border: 2px solid #fff; border-radius: 50%;
-      background: var(--pokeui-color); color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; pointer-events: auto; }
+      background: var(--pokeui-color); color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; pointer-events: auto;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.35); }
     .highlight { position: fixed; border: 2px solid #3b82f6; background: rgba(59,130,246,.15); pointer-events: none; }
     .panel, .editor { position: fixed; background: #1c1c1f; color: #f4f4f5; border-radius: 8px; pointer-events: auto;
       box-shadow: 0 8px 24px rgba(0,0,0,.35); }
@@ -191,13 +192,15 @@
     .row .open { flex: 1; min-width: 0; display: block; text-align: left; background: none;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row.missing .open { opacity: .5; text-decoration: line-through; }
-    .row .mini { padding: 4px; background: none; opacity: 0; }
+    .row .mini { padding: 4px; background: none; color: #a1a1aa; opacity: 0; }
+    .row .mini svg { width: 14px; height: 14px; }
     .row:hover .mini, .row:focus-within .mini { opacity: 1; }
-    .row .mini:hover, .row .mini:focus-visible { background: #3f3f46; }
+    .row .mini:hover, .row .mini:focus-visible { background: #3f3f46; color: #f4f4f5; }
     .editor { width: 280px; padding: 8px; }
     .editor .field { position: relative; }
     .editor input { display: block; width: 100%; padding: 6px 30px 6px 8px;
       color: inherit; background: #27272a; border: 1px solid #52525b; border-radius: 6px; }
+    .editor input:focus { outline: none; border-color: #71717a; }
     .enter-hint { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex;
       color: #71717a; pointer-events: none; }
     .enter-hint svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;
@@ -222,7 +225,9 @@
 
   function render() {
     markersEl.replaceChildren(...notes.map((n, i) => h('button', {
-      class: 'marker', 'data-id': n.id, 'aria-label': `Note ${i + 1}`, onclick: () => openEditor({ id: n.id }),
+      class: 'marker', 'data-id': n.id, 'aria-label': `Note ${i + 1}`,
+      // Opening a note from its pin also brings up the panel (annotation mode).
+      onclick: () => { if (!active) setActive(true); openEditor({ id: n.id }); },
     }, String(i + 1))));
     position();
 
