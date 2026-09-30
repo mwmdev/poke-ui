@@ -169,7 +169,8 @@
     .editor textarea { display: block; width: 100%; height: 72px; margin-bottom: 6px; resize: vertical; padding: 6px;
       color: inherit; background: #27272a; border: 1px solid #52525b; border-radius: 6px; }
     .editor .save { background: #3b82f6; }
-    .editor .delete { margin-left: auto; background: #b42318; }
+    .editor .delete, .armed { background: #b42318; }
+    .editor .delete { margin-left: auto; }
   `;
 
   const host = document.createElement('anot-root');
@@ -195,9 +196,27 @@
     if (!active) return;
     const copyAllBtn = iconBtn('Copy all', 'copy', { disabled: notes.length === 0 });
     copyAllBtn.addEventListener('click', () => copy(formatAll(), copyAllBtn));
+    const clearAllBtn = iconBtn('Clear all', 'delete', { disabled: notes.length === 0 });
+    let armTimer;
+    clearAllBtn.addEventListener('click', async () => {
+      if (!clearAllBtn.classList.contains('armed')) {
+        clearAllBtn.classList.add('armed');
+        setIcon(clearAllBtn, 'delete', 'Confirm clear all');
+        armTimer = setTimeout(() => {
+          clearAllBtn.classList.remove('armed');
+          setIcon(clearAllBtn, 'delete', 'Clear all');
+        }, 3000);
+        return;
+      }
+      clearTimeout(armTimer);
+      notes = [];
+      await save();
+      closeEditor();
+      render();
+    });
     panelEl.replaceChildren(
       h('div', { class: 'bar' }, h('span', { class: 'grip', 'aria-label': 'Move', title: 'Move' }, '⠿'),
-        copyAllBtn, iconBtn('Done', 'close', { onclick: () => setActive(false) })),
+        copyAllBtn, clearAllBtn, iconBtn('Done', 'close', { onclick: () => setActive(false) })),
       ...notes.map((n, i) => h('button', {
         class: 'row' + (resolve(n.selector) ? '' : ' missing'), onclick: () => openEditor({ id: n.id }),
       }, `${i + 1}  ${firstLine(n.text)}`)),

@@ -154,3 +154,30 @@ test('panel can be dragged by its grip', async ({ context, server }) => {
   await page.mouse.up();
   expect(Math.round((await panel.boundingBox()).x - after.x)).toBe(50);
 });
+
+test('clear all needs a second click and removes every note', async ({ context, server }) => {
+  let [worker] = context.serviceWorkers();
+  worker ||= await context.waitForEvent('serviceworker');
+  const page = await context.newPage();
+  await page.goto(server);
+  await page.bringToFront();
+  await worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    await toggleTab(tab);
+  });
+  const markers = page.locator('anot-root .marker:visible');
+  for (const [id, text] of [['buy', 'one'], ['title', 'two']]) {
+    await page.locator(`[data-testid="${id}"]`).click();
+    await page.getByRole('textbox', { name: 'Note' }).fill(text);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+  }
+  await expect(markers).toHaveCount(2);
+
+  await page.getByRole('button', { name: 'Clear all', exact: true }).click();
+  await expect(markers).toHaveCount(2);
+  await page.getByRole('button', { name: 'Confirm clear all', exact: true }).click();
+  await expect(markers).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Clear all', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(markers).toHaveCount(0);
+});
