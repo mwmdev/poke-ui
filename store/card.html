@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Poke UI</title>
+  <!-- Title and end cards of the demo video (store/record.mjs), 1280x800. /card is the title card, /card?end the end
+       card. /card?lockup=light|dark is the README header (store/shoot.mjs): only the lockup is captured, on a transparent
+       background, with the wordmark inked for GitHub's light or dark theme. The logo is icons/logo.svg, served by the
+       asset scripts at the same relative path. -->
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    body { background: #f4ecdc; color: #2a241e; }
+    .card { position: relative; display: flex; align-items: center; height: 100%; opacity: 0; }
+    .card.in { opacity: 1; transition: opacity 300ms ease; }
+    .column { display: flex; flex-direction: column; gap: 36px; margin-left: 176px; }
+    .lockup { display: flex; align-items: center; gap: 28px; }
+    .lockup img { display: block; width: 112px; height: 112px; }
+    .wordmark {
+      font: 700 92px/1 "Iowan Old Style", "Palatino Linotype", Palatino, "TeX Gyre Pagella", "URW Palladio L", "Book Antiqua", Georgia, serif;
+      letter-spacing: -.02em;
+      white-space: nowrap;
+    }
+    .rule { width: 560px; border-top: 1px solid #2a241e; }
+    .mono { font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace; font-weight: 500; color: #6b6156; }
+    .line { display: flex; align-items: baseline; gap: 18px; font-size: 20px; line-height: 1; }
+    #end { align-items: center; gap: 14px; }
+    #end img { display: block; width: 32px; height: 32px; }
+    .repo { position: absolute; left: 176px; bottom: 56px; font-size: 15px; line-height: 1; }
+    [hidden] { display: none !important; }
+    [data-lockup] body { background: transparent; }
+    [data-lockup] .lockup { align-self: flex-start; }
+    [data-lockup="dark"] .wordmark { color: #efe6d6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="column">
+      <div class="lockup"><img src="../icons/logo.svg" alt=""><span class="wordmark">Poke UI</span></div>
+      <div class="rule"></div>
+      <div class="line mono" id="title">Point · Note · Paste</div>
+      <div class="line mono" id="end" hidden><img src="../icons/toolbar/b4432a-32.png" alt=""><span>Click it on any page</span></div>
+    </div>
+    <span class="repo mono" id="repo" hidden>github.com/mwmdev/poke-ui</span>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const end = params.has('end');
+    if (params.has('lockup')) document.documentElement.dataset.lockup = params.get('lockup');
+    document.querySelector('#title').hidden = end;
+    document.querySelector('#end').hidden = !end;
+    document.querySelector('#repo').hidden = !end;
+    // Fade in once the logo has loaded, so the card never appears without it.
+    addEventListener('load', () => requestAnimationFrame(() => document.querySelector('.card').classList.add('in')));
+  </script>
+</body>
+</html>

@@ -1,74 +1,38 @@
 // Generates the Web Store images in store/assets/ with the real extension running in headless Chromium:
-// three 1280x800 screenshots and the 440x280 promo tile. Run: npm run store-assets
-import { chromium } from '@playwright/test';
-import { createRequire } from 'node:module';
+// three 1280x800 screenshots and the 440x280 promo tile, plus the README header lockup. Run: npm run store-assets
 import fs from 'node:fs';
-import http from 'node:http';
-import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { installOverlay } from './overlay.mjs';
+import { HOST, openStage, root } from './stage.mjs';
 
-const { prepareExtension } = createRequire(import.meta.url)('../tests/extension-dir.js');
-
-const root = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const outDir = path.join(root, 'store', 'assets');
 fs.mkdirSync(outDir, { recursive: true });
 
-const routes = {
-  '/': ['store/demo.html', 'text/html'],
-  '/paste': ['store/paste.html', 'text/html'],
-  '/promo': ['store/promo.html', 'text/html'],
-};
-const server = http.createServer((req, res) => {
-  const route = routes[new URL(req.url, 'http://x').pathname];
-  if (!route) {
-    res.statusCode = 404;
-    res.end();
-    return;
-  }
-  res.setHeader('content-type', route[1]);
-  res.end(fs.readFileSync(path.join(root, route[0])));
-});
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.address().port}`;
-
-const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'poke-ui-shoot-'));
-const extension = prepareExtension();
-const context = await chromium.launchPersistentContext(userDataDir, {
-  headless: true,
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-  args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
-  viewport: { width: 1280, height: 800 },
-  deviceScaleFactor: 1,
-});
-
+const { context, worker, toggle, close } = await openStage();
 try {
-  let [worker] = context.serviceWorkers();
-  worker ||= await context.waitForEvent('serviceworker');
-  // Playwright switches off every permission that isn't listed; Chromium itself allows the copy by default.
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
-
-  // Same code path as the toolbar icon / keyboard shortcut.
-  const toggle = () => worker.evaluate(async () => {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    await toggleTab(tab);
-  });
+  // The caption label; screenshots never place the cursor, so it stays hidden.
+  await context.addInitScript(installOverlay);
 
   const page = await context.newPage();
   await page.bringToFront();
-  const shot = (name) => page.screenshot({ path: path.join(outDir, name) });
+  // Fast-forwards the panel/editor fades and the caption's entrance, so nothing is captured half-done.
+  const shot = (name) => page.screenshot({ path: path.join(outDir, name), animations: 'disabled' });
+  // Replacing a visible caption swaps its text after a 160ms fade-out, so wait until the new text is the one shown.
+  const caption = async (n, text) => {
+    await page.evaluate(([n, text]) => window.__caption(text, n), [n, text]);
+    await page.locator('.caption.on').filter({ hasText: text }).waitFor();
+  };
   const target = (demo) => page.locator(`[data-demo="${demo}"]`);
   const note = page.getByRole('textbox', { name: 'Note' });
   const button = (name) => page.getByRole('button', { name, exact: true });
-  const panel = page.locator('poke-ui-root .panel');
   const markers = page.locator('poke-ui-root .marker:visible');
 
-  // 1. Annotating: two saved notes, a third being typed.
+  // 1. Annotating, light theme, Rust: two saved notes, the third typed into the editor on its (selected) element.
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto(base + '/');
+  await page.goto(HOST + '/subscriptions');
   await toggle();
   for (const [demo, text, count] of [
-    ['cta-pro', 'Make this the primary button: 48px tall, bolder label', 1],
+    ['cta-grower', 'Make this the primary button: 48px tall, bolder label', 1],
     ['hero', 'Tighten line height and reduce the gap below', 2],
   ]) {
     await target(demo).click();
@@ -76,42 +40,53 @@ try {
     await note.press('Enter');
     await markers.nth(count - 1).waitFor();
   }
-  await target('cta-business').click();
-  await note.fill('Match the Pro button style');
-  await target('cta-business').hover();
+  await target('cta-collector').click();
+  await note.fill('Match the Grower button style');
+  await target('cta-collector').hover();
+  await caption('01', 'Point at anything. Say what should change.');
   await shot('screenshot-1-annotate.png');
 
-  // 2. The panel: dark theme, blue pins, marker color row open, first row hovered.
-  await note.press('Escape');
-  await worker.evaluate(() => chrome.storage.local.set({ theme: 'dark', markerColor: '#0090ff' }));
+  // 2. The list: note 3 saved, dark theme, Teal pins, the color picker open, the first row hovered.
+  await note.press('Enter');
+  await markers.nth(2).waitFor();
+  await worker.evaluate(() => chrome.storage.local.set({ theme: 'dark', markerColor: '#22696f' }));
   await page.waitForFunction(() => {
     const el = document.querySelector('poke-ui-root')?.shadowRoot?.querySelector('.panel');
-    return el && getComputedStyle(el).backgroundColor === 'rgb(28, 28, 31)';
+    return el && getComputedStyle(el).backgroundColor === 'rgb(31, 27, 23)';
   });
   await button('Marker color').click();
   await page.locator('poke-ui-root .row').first().hover();
+  await caption('02', 'Every note in one list, ready to copy.');
   await shot('screenshot-2-panel.png');
 
-  // 3. The hand-off: the copied markdown pasted into a terminal.
+  // 3. The hand-off: the copied markdown pasted into an assistant's terminal.
   await button('Marker color').click();
   await button('Copy all').click();
   await button('Copied').waitFor();
   const markdown = await page.evaluate(() => navigator.clipboard.readText());
-  await page.goto(base + '/paste');
+  await page.goto(HOST + '/paste');
   const count = (markdown.match(/^### Annotation /gm) || []).length;
-  await page.evaluate(({ markdown, count }) => {
-    document.querySelector('#chip').textContent = `[Pasted: ${count} annotation${count === 1 ? '' : 's'}]`;
-    document.querySelector('#out').textContent = markdown;
-  }, { markdown, count });
+  await page.evaluate(([markdown, count]) => {
+    window.showPaste(markdown, count);
+    // The same 520px window as the video's scroll clip, so the text stops above the caption instead of running under it.
+    Object.assign(document.querySelector('#out').style, { height: '520px', overflow: 'hidden' });
+  }, [markdown, count]);
+  await caption('03', 'Paste it into your assistant.');
   await shot('screenshot-3-handoff.png');
+
+  // README header: the title card's lockup on a transparent background, one per GitHub theme.
+  for (const scheme of ['light', 'dark']) {
+    await page.goto(`${HOST}/card?lockup=${scheme}`);
+    await page.locator('.card.in').waitFor();
+    await page.locator('.lockup').screenshot({
+      path: path.join(outDir, `lockup-${scheme}.png`), animations: 'disabled', omitBackground: true,
+    });
+  }
 
   // Promo tile.
   await page.setViewportSize({ width: 440, height: 280 });
-  await page.goto(base + '/promo');
+  await page.goto(HOST + '/promo');
   await shot('promo-440x280.png');
 } finally {
-  await context.close();
-  server.close();
-  fs.rmSync(userDataDir, { recursive: true, force: true });
-  fs.rmSync(extension, { recursive: true, force: true });
+  await close();
 }

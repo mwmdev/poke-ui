@@ -47,7 +47,7 @@ test('annotate, persist, edit, delete, copy one and all', async ({ context, serv
   await page.goto(server);
   await page.bringToFront();
 
-  // Same code path as the toolbar icon / keyboard shortcut.
+  // Same code path as the toolbar icon.
   const toggle = () => worker.evaluate(async () => {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     await toggleTab(tab);
@@ -114,9 +114,9 @@ test('annotate, persist, edit, delete, copy one and all', async ({ context, serv
   expect(selectorsIn(single)).toHaveLength(1);
   expect(await testidFor(selectorsIn(single)[0])).toBe('title');
 
-  // Copy all notes.
+  // Copy all notes. The row's own "Copied" can still be showing, so look in the footer.
   await button('Copy all').click();
-  await expect(button('Copied')).toBeVisible();
+  await expect(page.locator('poke-ui-root .foot').getByRole('button', { name: 'Copied', exact: true })).toBeVisible();
   const all = await readClipboard(page);
   expect(all).toContain('Make the button green');
   expect(all).toContain('Tighten the heading');
@@ -229,30 +229,56 @@ test('marker color is chosen from five and applies to every page', async ({ cont
   await b.bringToFront();
   await toggle();
   await addNote(b, 'title');
-  expect(await markerColor(b)).toBe('rgb(229, 72, 77)');
+  expect(await markerColor(b)).toBe('rgb(180, 67, 42)');
   await expect(b.locator('poke-ui-root .panel')).not.toContainText(/false|null/);
 
   await b.getByRole('button', { name: 'Marker color' }).click();
   const swatches = b.locator('poke-ui-root .swatch');
   await expect(swatches).toHaveCount(5);
-  await b.getByRole('button', { name: 'Green', exact: true }).click();
+  await b.getByRole('button', { name: 'Moss', exact: true }).click();
   await expect(swatches).toHaveCount(0);
   await expect(b.locator('poke-ui-root .panel')).not.toContainText(/false|null/);
-  await expect.poll(() => markerColor(b)).toBe('rgb(48, 164, 108)');
-  await expect.poll(() => markerColor(a)).toBe('rgb(48, 164, 108)');
+  await expect.poll(() => markerColor(b)).toBe('rgb(77, 107, 44)');
+  await expect.poll(() => markerColor(a)).toBe('rgb(77, 107, 44)');
 
   await a.reload();
   await a.bringToFront();
   await toggle();
-  await expect.poll(() => markerColor(a)).toBe('rgb(48, 164, 108)');
+  await expect.poll(() => markerColor(a)).toBe('rgb(77, 107, 44)');
   await b.bringToFront();
   await b.getByRole('button', { name: 'Marker color' }).click();
-  await expect(b.getByRole('button', { name: 'Green', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(b.getByRole('button', { name: 'Moss', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   // Every selectable color has a toolbar icon (setIcon rejects when the image is missing).
   const hexes = await swatches.evaluateAll((els) => els.map((el) => el.getAttribute('style').match(/#[0-9a-f]{6}/i)[0]));
   expect(hexes).toHaveLength(5);
   await worker.evaluate((list) => Promise.all(list.map((hex) => chrome.action.setIcon(iconFor(hex)))), hexes);
+});
+
+test('a legacy marker color migrates to its replacement', async ({ context, server }) => {
+  let [worker] = context.serviceWorkers();
+  worker ||= await context.waitForEvent('serviceworker');
+  // Blue from before the redesign; the service worker migrates it at startup.
+  await worker.evaluate(async () => {
+    await chrome.storage.local.set({ markerColor: '#0090ff' });
+    await migrateColor();
+  });
+  expect(await worker.evaluate(() => chrome.storage.local.get('markerColor'))).toEqual({ markerColor: '#22696f' });
+
+  const page = await context.newPage();
+  await page.goto(server);
+  await page.bringToFront();
+  await worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    await toggleTab(tab);
+  });
+  await page.locator('[data-testid="buy"]').click();
+  await page.getByRole('textbox', { name: 'Note' }).fill('note');
+  await page.getByRole('textbox', { name: 'Note' }).press('Enter');
+  await expect.poll(() => page.locator('poke-ui-root .marker').first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(34, 105, 111)');
+  await page.getByRole('button', { name: 'Marker color' }).click();
+  await expect(page.getByRole('button', { name: 'Teal', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('Enter saves a note and Esc cancels the editor', async ({ context, server }) => {
@@ -383,8 +409,8 @@ test('theme button cycles Auto, Light and Dark and applies everywhere', async ({
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     await toggleTab(tab);
   });
-  const DARK = 'rgb(28, 28, 31)';
-  const LIGHT = 'rgb(255, 255, 255)';
+  const DARK = 'rgb(31, 27, 23)';
+  const LIGHT = 'rgb(247, 242, 232)';
   const bg = (page, part) => page.locator(`poke-ui-root .${part}`).evaluate((el) => getComputedStyle(el).backgroundColor);
   const themeBtn = (page, name) => page.getByRole('button', { name: `Theme: ${name}`, exact: true });
 

@@ -2,88 +2,100 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Northwind Cloud pricing</title>
+  <title>Glasshouse subscriptions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- A fictional plant-subscription shop for the store screenshots and demo video (npm run store-assets / demo-video).
+       Its own brand (white, forest green, pill buttons), deliberately unlike Poke UI's paper and ink, so the tool reads
+       as a separate layer. Sized for 1280x800; nothing scrolls, and the bottom-left corner stays empty for the caption. -->
   <style>
     * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
     body {
-      margin: 0;
-      min-height: 100vh;
-      background: #f5f6f8;
-      color: #14181f;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      position: relative;
+      background: #ffffff;
+      color: #15231b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
     }
-    nav {
-      display: flex;
-      align-items: center;
-      gap: 36px;
-      height: 68px;
-      padding: 0 64px;
-      background: #fff;
-      border-bottom: 1px solid #e3e6ec;
-    }
-    .logo { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-    .logo i { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, #2563eb, #60a5fa); }
-    nav a { color: #515a6b; font-size: 15px; text-decoration: none; }
-    nav a.current { color: #14181f; font-weight: 600; }
-    main { max-width: 1152px; margin: 0 auto; padding: 44px 64px 0; }
-    h1 { margin: 0; max-width: 620px; font-size: 52px; line-height: 1.12; letter-spacing: -0.03em; }
-    .lead { margin: 16px 0 0; max-width: 520px; color: #515a6b; font-size: 18px; line-height: 1.5; }
-    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 44px; }
-    .plan {
-      display: flex;
-      flex-direction: column;
-      padding: 28px;
-      background: #fff;
-      border: 1px solid #e3e6ec;
-      border-radius: 16px;
-    }
-    .plan.featured { border-color: #2563eb; box-shadow: 0 8px 28px rgba(37, 99, 235, 0.14); }
-    .plan h2 { margin: 0; font-size: 17px; font-weight: 600; color: #515a6b; }
-    .price { margin: 10px 0 0; font-size: 42px; font-weight: 700; letter-spacing: -0.03em; }
-    .price small { font-size: 15px; font-weight: 500; color: #7a8294; letter-spacing: 0; }
-    ul { margin: 20px 0 26px; padding: 0; list-style: none; color: #2c3240; font-size: 15px; line-height: 2; }
-    li::before { content: '\2713'; margin-right: 10px; color: #2563eb; font-weight: 700; }
-    .cta { margin-top: auto; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 10px; }
-    .cta.outline { background: #fff; color: #14181f; border: 1.5px solid #c8cdd8; }
-    .cta.fill { background: #2563eb; color: #fff; border: 1.5px solid #2563eb; padding: 12px 22px; }
-    [data-demo="cta-starter"] { padding: 10px 18px; }
-    [data-demo="cta-business"] { padding: 13px 28px; }
-    footer { margin-top: 40px; padding-bottom: 28px; color: #7a8294; font-size: 13px; text-align: center; }
+    nav { display: flex; align-items: center; gap: 32px; height: 68px; padding: 0 64px; border-bottom: 1px solid #e4e9e4; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+    .brand svg { width: 24px; height: 24px; }
+    nav a { color: #56645b; font-size: 15px; text-decoration: none; }
+    nav a.current { color: #15231b; font-weight: 600; }
+    /* Clears the Poke UI panel at the top right. */
+    nav .cart { margin-left: auto; margin-right: 300px; }
+    main { max-width: 1152px; margin: 0 auto; padding: 56px 64px 0; }
+    h1 { margin: 0; max-width: 900px; font-size: 44px; line-height: 1.1; letter-spacing: -.035em; font-weight: 750; }
+    .lead { margin: 14px 0 0; max-width: 560px; color: #56645b; font-size: 18px; line-height: 1.5; }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; }
+    .plan { display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1px solid #e1e7e1; border-radius: 18px; }
+    .plan.featured { border-color: #1f4d3a; box-shadow: 0 10px 30px rgba(31, 77, 58, .14); }
+    .photo { display: flex; align-items: flex-end; justify-content: center; height: 92px; background: #e9f0e8; }
+    .featured .photo { background: #dfeadf; }
+    .photo svg { height: 80px; }
+    .body { display: flex; flex-direction: column; flex: 1; padding: 20px 24px 24px; }
+    .plan h2 { margin: 0; font-size: 16px; font-weight: 650; color: #56645b; }
+    .price { margin: 6px 0 0; font-size: 38px; font-weight: 750; letter-spacing: -.03em; }
+    .price small { font-size: 15px; font-weight: 500; color: #7c887f; letter-spacing: 0; }
+    ul { margin: 14px 0 22px; padding: 0; list-style: none; color: #2c3a31; font-size: 15px; line-height: 1.9; }
+    li::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 12px 2px 0; border-radius: 50%; background: #3f8a63; }
+    .cta { margin-top: auto; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 999px; }
+    .cta.outline { padding: 11px 20px; background: #fff; color: #15231b; border: 1.5px solid #c9d3cb; }
+    /* Deliberately under-weighted: note 1 of the demo asks to fix it. */
+    .cta.fill { padding: 9px 18px; background: #1f4d3a; color: #fff; border: 1.5px solid #1f4d3a; font-weight: 500; }
+    footer { position: absolute; right: 64px; bottom: 28px; color: #7c887f; font-size: 13px; }
   </style>
 </head>
 <body>
   <nav>
-    <span class="logo"><i></i>Northwind Cloud</span>
-    <a href="#">Product</a>
-    <a class="current" href="#">Pricing</a>
-    <a href="#">Docs</a>
-    <a href="#">Sign in</a>
+    <span class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22C12 14 6 9 2 8c1 7 5 12 10 14zm0 0c0-8 6-13 10-14-1 7-5 12-10 14zm0-8C10 9 11 5 12 2c1 3 2 7 0 12z" fill="#1f4d3a"/></svg>
+      Glasshouse
+    </span>
+    <a href="#">Plants</a>
+    <a class="current" href="#">Subscriptions</a>
+    <a href="#">Journal</a>
+    <a href="#">Visit us</a>
+    <a class="cart" href="#">Cart (0)</a>
   </nav>
   <main>
-    <h1 data-demo="hero">Simple pricing for growing teams</h1>
-    <p class="lead">Start free, upgrade when you need more. No setup fees, cancel any time.</p>
+    <h1 data-demo="hero">A new plant every month, grown slowly.</h1>
+    <p class="lead">Pick your plants, skip a month whenever you like, and get repotting help from our growers.</p>
     <section class="plans">
       <article class="plan">
-        <h2>Starter</h2>
-        <p class="price">$0 <small>/ month</small></p>
-        <ul><li>1 project</li><li>Community support</li><li>7-day log history</li></ul>
-        <button class="cta outline" data-demo="cta-starter">Get started</button>
+        <div class="photo">
+          <svg viewBox="0 0 120 80" aria-hidden="true"><path d="M42 58h36l-5 22H47z" fill="#c7a27a"/><path d="M60 58C58 40 44 30 30 28c4 14 14 26 30 30zM60 58c2-22 14-36 30-40-2 18-12 34-30 40zM60 58c-1-20 2-38 0-52 8 14 8 36 0 52z" fill="#5f8f6f"/></svg>
+        </div>
+        <div class="body">
+          <h2>Seedling</h2>
+          <p class="price">$12 <small>/ month</small></p>
+          <ul><li>One small plant</li><li>Care card</li><li>Skip any month</li></ul>
+          <button class="cta outline" data-demo="cta-seedling">Start small</button>
+        </div>
       </article>
       <article class="plan featured">
-        <h2>Pro</h2>
-        <p class="price">$24 <small>/ month</small></p>
-        <ul><li>Unlimited projects</li><li>Email support</li><li>90-day log history</li></ul>
-        <button class="cta fill" data-demo="cta-pro">Start free trial</button>
+        <div class="photo">
+          <svg viewBox="0 0 120 80" aria-hidden="true"><path d="M42 58h36l-5 22H47z" fill="#b98b5e"/><path d="M60 58C58 40 44 30 30 28c4 14 14 26 30 30zM60 58c2-22 14-36 30-40-2 18-12 34-30 40zM60 58c-1-20 2-38 0-52 8 14 8 36 0 52z" fill="#2f6b4f"/></svg>
+        </div>
+        <div class="body">
+          <h2>Grower</h2>
+          <p class="price">$24 <small>/ month</small></p>
+          <ul><li>Two plants, any size</li><li>Repotting kit</li><li>Chat with a grower</li></ul>
+          <button class="cta fill" data-demo="cta-grower">Start growing</button>
+        </div>
       </article>
       <article class="plan">
-        <h2>Business</h2>
-        <p class="price">$79 <small>/ month</small></p>
-        <ul><li>Single sign-on</li><li>Priority support</li><li>1-year log history</li></ul>
-        <button class="cta outline" data-demo="cta-business">Contact sales</button>
+        <div class="photo">
+          <svg viewBox="0 0 120 80" aria-hidden="true"><path d="M42 58h36l-5 22H47z" fill="#a98468"/><path d="M60 58C58 40 44 30 30 28c4 14 14 26 30 30zM60 58c2-22 14-36 30-40-2 18-12 34-30 40zM60 58c-1-20 2-38 0-52 8 14 8 36 0 52z" fill="#7a9a6a"/></svg>
+        </div>
+        <div class="body">
+          <h2>Collector</h2>
+          <p class="price">$48 <small>/ month</small></p>
+          <ul><li>Rare cuttings</li><li>Ceramic pots</li><li>Studio visits</li></ul>
+          <button class="cta outline" data-demo="cta-collector">Talk to us</button>
+        </div>
       </article>
     </section>
-    <footer>&copy; 2026 Northwind Cloud, Inc.</footer>
   </main>
+  <footer>&copy; 2026 Glasshouse Growers</footer>
 </body>
 </html>

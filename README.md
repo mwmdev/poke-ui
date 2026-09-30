@@ -1,27 +1,19 @@
-<p align="center">
-  <img src="icons/icon128.png" width="96" alt="Poke UI logo">
-</p>
+<p><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="store/assets/lockup-dark.png">
+  <img src="store/assets/lockup-light.png" width="232" alt="Poke UI">
+</picture></p>
 
-<h1 align="center">Poke UI</h1>
+Mark up a live web page like a printed proof. Point at an element, say what should change, and hand your AI coding assistant exactly what it needs to find it.
 
-<p align="center">
-  Point at a UI element, say what should change, and hand your AI coding assistant exactly what it needs to find it.
-</p>
+<img src="store/assets/demo.gif" width="800" alt="Poke UI demo: click the toolbar icon, click elements and type notes, copy everything as markdown, paste it into an AI assistant">
 
-<p align="center">
-  <img src="store/assets/demo.gif" width="800" alt="Poke UI demo: press Alt+Shift+A, click elements and type notes, copy everything as markdown, paste it into an AI assistant">
-</p>
+"Make the button bigger" is hard to act on without the page in front of you. Poke UI turns each remark into a small, precise bug report: your note plus the element's CSS selector, box, key styles and HTML. Copy one note or all of them as markdown and paste them into Claude Code, Codex, Cursor or any other assistant.
 
-"Make the button bigger" is hard to act on without the page in front of you. Poke UI turns each remark into a small, precise bug report: your note plus the element's CSS selector, box, key styles and HTML. Copy one note or all of them as markdown and paste them into Claude Code, Codex, Cursor, or any other assistant.
-
-- **Click, type, Enter.** Annotate any element on any page, live or local.
-- **Markdown out.** One paste carries every note with the context an assistant needs.
-- **Runs only when you ask.** No always-on script and no site access at install; it activates on the tab you click it on.
-- **Local only.** Notes live in your browser. Nothing is sent anywhere.
+It runs only on the tab where you click its icon, needs no access to your sites at install, and keeps every note in your browser.
 
 ## Install
 
-Poke UI is a plain-JS Manifest V3 extension with no build step, for Chromium-based browsers such as Chrome and Brave.
+A plain-JS Manifest V3 extension with no build step, for Chromium-based browsers such as Chrome and Brave.
 
 1. Clone this repo.
 2. Open `chrome://extensions` (or `brave://extensions`) and turn on **Developer mode**.
@@ -29,21 +21,27 @@ Poke UI is a plain-JS Manifest V3 extension with no build step, for Chromium-bas
 
 ## Use
 
-1. Click the toolbar icon or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> (change it at `chrome://extensions/shortcuts`). A small panel appears.
-2. Click any element. Type what should change and press <kbd>Enter</kbd> to save, <kbd>Esc</kbd> to cancel.
-3. Click a numbered pin, or a note in the panel, to edit it.
-4. Hover a note in the panel to copy or delete just that one. **Copy all** copies every note on the page as markdown. **Clear all** and each delete ask for a second click first.
-5. Paste into your assistant.
+Click the Poke UI icon in the toolbar (pin it from the extensions menu if it's hidden). The panel opens on that tab.
 
-The panel's **Done** button leaves annotation mode; the pins stay, and clicking a pin brings the panel back.
+### <samp>01</samp> Point at anything. Say what should change.
 
-### Make it yours
+<img src="store/assets/screenshot-1-annotate.png" width="800" alt="Two numbered pins on a plant shop page and the note editor open under a third button">
 
-<p align="center">
-  <img src="store/assets/screenshot-2-panel.png" width="720" alt="The panel in dark theme with the marker color row open">
-</p>
+Click any element. The editor shows the note's number and the element's selector. Type the change and press <kbd>Enter</kbd> to save or <kbd>Esc</kbd> to cancel; <kbd>Shift</kbd>+<kbd>Enter</kbd> adds a line break. Each note becomes a numbered pin on its element; click a pin to reopen the note.
 
-The colored dot in the panel picks the pin color (five choices) and also tints the toolbar icon. The button at the end of that row cycles the theme: Auto (follows the browser), Light, Dark. The panel is draggable by its grip.
+### <samp>02</samp> Every note in one list, ready to copy.
+
+<img src="store/assets/screenshot-2-panel.png" width="800" alt="The notes panel in dark theme with the marker colors open and teal pins on the page">
+
+The panel lists the page's notes with their count. Click a row to edit that note; hover it to copy or delete just that one. **Clear all** and each delete ask for a second click first. A note whose element is gone is shown struck through.
+
+The tag in the header picks the marker color, Rust, Ochre, Moss, Teal or Plum, and tints the toolbar icon to match. The button at the end of that row cycles the theme: Auto (follows the browser), Light, Dark. Drag the panel by its grip. **Done** leaves annotation mode; the pins stay, and clicking one brings the panel back.
+
+### <samp>03</samp> Paste it into your assistant.
+
+<img src="store/assets/screenshot-3-handoff.png" width="800" alt="Three annotations pasted as markdown into a terminal assistant">
+
+**Copy all** puts every note on the page on the clipboard as one markdown document.
 
 ## What you paste
 
@@ -54,13 +52,13 @@ The colored dot in the panel picks the pin color (five choices) and also tints t
 
 Make this the primary button: 48px tall, bolder label
 
-- URL: https://northwind.example/pricing
+- URL: http://glasshouse.example/subscriptions
 - Selector: `button.cta.fill`
-- Box (document px): x=506 y=588 width=267 height=44
-- Styles: `background-color: rgb(37, 99, 235); border-radius: 10px; font-size: 15px; font-weight: 600; …`
+- Box (document px): x=502 y=582 width=275 height=37
+- Styles: `background-color: rgb(31, 77, 58); border: 1px solid rgb(31, 77, 58); border-radius: 999px; color: rgb(255, 255, 255); display: block; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; font-size: 15px; font-weight: 500; height: 37px; line-height: normal; margin: 4px 0px 0px; padding: 9px 18px; position: static; width: 275.328px`
 
 ```html
-<button class="cta fill" data-demo="cta-pro">Start free trial</button>
+<button class="cta fill" data-demo="cta-grower">Start growing</button>
 ```
 ````
 
@@ -73,7 +71,7 @@ Make this the primary button: 48px tall, bolder label
 | Styles | 14 computed properties: color, background, font, spacing, border, display, size |
 | HTML | The element's markup, cut at 400 characters |
 
-Notes are stored per page URL (the `#hash` is ignored) and follow in-page navigation in single-page apps. A note whose element no longer exists is shown struck through in the panel.
+Notes are stored per page URL (the `#hash` is ignored) and follow in-page navigation in single-page apps.
 
 ## Privacy
 
@@ -81,11 +79,11 @@ Everything stays in `chrome.storage.local` on your device. There are no servers,
 
 | Permission | Why |
 | --- | --- |
-| `activeTab` | Temporary access to the current tab, granted only when you click the icon or press the shortcut |
+| `activeTab` | Temporary access to the current tab, granted only when you click the icon |
 | `scripting` | Injects the annotation script into that tab at that moment |
 | `storage` | Saves notes, marker color and theme on your device |
 
-There are no host permissions and no content script, so the browser shows no "read and change all your data on all websites" warning at install. The flip side: after a full page reload the pins stay hidden until you activate Poke UI on that page again. The notes are still saved. Browsers do not allow extensions on internal pages such as `chrome://` or the Chrome Web Store.
+There are no host permissions and no content script, so the browser shows no "read and change all your data on all websites" warning at install. The flip side: after a full page reload the pins stay hidden until you click the icon on that page again. The notes are still saved. Browsers do not allow extensions on internal pages such as `chrome://` or the Chrome Web Store.
 
 ## Development
 
@@ -100,18 +98,18 @@ The tests load the extension in headless Chromium. The env var is only needed on
 | --- | --- |
 | `npm test` | Playwright end-to-end tests (`tests/`) |
 | `npm run package` | Builds `dist/poke-ui-<version>.zip` with only the runtime files |
-| `npm run store-assets` | Regenerates the screenshots and promo tile in `store/assets/` |
-| `npm run demo-video` | Records `store/assets/demo.mp4` and `demo.gif` (needs `ffmpeg`) |
+| `npm run store-assets` | Regenerates the three screenshots, the promo tile and this README's header lockup in `store/assets/` |
+| `npm run demo-video` | Records `store/assets/demo.mp4` (with title and end cards) and `demo.gif` (the demo only, at most 3 MB); needs `ffmpeg` |
 | `icons/build.sh` | Regenerates the logo, store icon and toolbar icons (needs `node`, `inkscape`, ImageMagick) |
 
-The asset scripts drive the real extension against a fictional pricing page (`store/demo.html`), so they need the same browser setup as the tests.
+The asset scripts drive the real extension against a fictional plant shop (`store/demo.html`, served as `glasshouse.example`), so they need the same browser setup as the tests. `store/stage.mjs` serves the scenes and loads the extension; `store/overlay.mjs` draws the captions, cursor and click rings. The video's title and end cards are `store/card.html`, which also renders the header lockup.
 
 ```text
 manifest.json    MV3 manifest
-background.js    toolbar click and shortcut: inject content.js into the active tab, toggle it
+background.js    toolbar click: inject content.js into the active tab, toggle it
 content.js       the whole UI (pins, panel, editor) in a shadow root, plus storage and markdown
-icons/           logo, generator (pinch.mjs, build.sh) and the toolbar icons, one set per pin color
+icons/           logo, generator (logo.mjs, build.sh) and the toolbar icons, one set per pin color
 tests/           Playwright tests and the fixture page
-store/           Web Store listing text, asset and video scripts
+store/           Web Store listing text, scenes, asset and video scripts
 scripts/         packaging
 ```

@@ -27,7 +27,7 @@ English
 ```
 Poke UI helps you tell an AI coding assistant exactly which part of a page to change.
 
-Click the toolbar icon or press Alt+Shift+A, click any element, type what should change and press Enter. The element gets a numbered pin, and a small panel lists your notes. Click a pin or a note to edit it.
+Click the toolbar icon, click any element, type what should change and press Enter. The element gets a numbered pin, and a small panel lists your notes. Click a pin or a note to edit it.
 
 Copy one note, or all of them, as markdown. Each note carries what an assistant needs to find the element: your note, the page URL, a CSS selector, the element's box, its key styles and an HTML snippet. Paste it into any AI coding tool.
 
@@ -49,7 +49,7 @@ Annotate elements on the current web page and copy those notes, with element con
 activeTab:
 
 ```
-Gives temporary access to the current tab only when the user clicks the toolbar icon or presses the shortcut, so the annotation tool can run on that page.
+Gives temporary access to the current tab only when the user clicks the toolbar icon, so the annotation tool can run on that page.
 ```
 
 scripting:
@@ -86,8 +86,9 @@ https://github.com/mwmdev/poke-ui/blob/main/PRIVACY.md
 - `store/assets/screenshot-2-panel.png`: 1280×800
 - `store/assets/screenshot-3-handoff.png`: 1280×800
 - `store/assets/promo-440x280.png`: small promo tile
+- `store/assets/demo.mp4`: promo video (about 26 s, title and end cards included); the Promo video field takes a YouTube link, so upload it there first
 
-Regenerate the four images in `store/assets/` with `npm run store-assets`.
+Regenerate the four images in `store/assets/` with `npm run store-assets`, and the video (plus the README's `demo.gif`) with `npm run demo-video`.
 
 ## Manual upload checklist
 

@@ -2,7 +2,7 @@
 
 ## What it handles
 
-Poke UI only runs on a page after you activate it there (toolbar icon or `Alt+Shift+A`), and it only records the elements you annotate. For each note it stores:
+Poke UI only runs on a page after you activate it there with its toolbar icon, and it only records the elements you annotate. For each note it stores:
 
 - the page URL (notes are filed under the URL without its `#hash`; each note also keeps the full URL),
 - your note text,

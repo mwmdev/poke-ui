@@ -4,49 +4,44 @@
   <meta charset="utf-8">
   <title>Promo tile</title>
   <style>
-    html, body { width: 440px; height: 280px; margin: 0; overflow: hidden; background: #16161b; }
+    html, body { width: 440px; height: 280px; margin: 0; overflow: hidden; background: #f4ecdc; }
     svg { display: block; }
   </style>
 </head>
 <body>
-<svg id="art" width="440" height="280" viewBox="0 0 440 280" xmlns="http://www.w3.org/2000/svg"></svg>
-<script>
-  // The logo's idea, full bleed: a page grid pulled into the point where it was poked (see icons/pinch.mjs).
-  const W = 440, H = 280, PX = 220, PY = 140, SP = 20, PULL = 0.86, SIGMA = 88;
-  const warp = (x, y) => {
-    const dx = PX - x, dy = PY - y;
-    const k = PULL * Math.exp(-(dx * dx + dy * dy) / (SIGMA * SIGMA));
-    return [x + dx * k, y + dy * k];
-  };
-  const line = (points) => 'M' + points.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L');
-  const span = (from, to) => { const out = []; for (let t = from; t <= to; t += 4) out.push(t); return out; };
-  const grid = [];
-  for (let x = PX % SP - 2 * SP; x <= W + 2 * SP; x += SP) grid.push(line(span(-40, H + 40).map((y) => warp(x, y))));
-  for (let y = PY % SP - 2 * SP; y <= H + 2 * SP; y += SP) grid.push(line(span(-40, W + 40).map((x) => warp(x, y))));
+<!-- The Web Store small promo tile, 440x280. Paper on the left: the wordmark and a button being poked (highlight and
+     pin, as in the extension). Ink on the right: the markdown that the note becomes. -->
+<svg width="440" height="280" viewBox="0 0 440 280" xmlns="http://www.w3.org/2000/svg">
+  <rect width="440" height="280" fill="#f4ecdc"/>
+  <rect x="262" y="0" width="178" height="280" fill="#1f1b17"/>
 
-  document.getElementById('art').innerHTML = `
-    <defs>
-      <radialGradient id="bg" cx="0.5" cy="0.5" r="0.75"><stop offset="0" stop-color="#2c2c35"/><stop offset="1" stop-color="#121216"/></radialGradient>
-      <radialGradient id="well" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.85"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
-      <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#f76b15" stop-opacity="0.5"/><stop offset="1" stop-color="#f76b15" stop-opacity="0"/></radialGradient>
-      <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.72"><stop offset="0.45" stop-color="#0c0c10" stop-opacity="0"/><stop offset="1" stop-color="#0c0c10" stop-opacity="0.7"/></radialGradient>
-      <radialGradient id="dot" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#fbb98a"/><stop offset=".5" stop-color="#f76b15"/><stop offset="1" stop-color="#c0520f"/></radialGradient>
-      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/></filter>
-    </defs>
-    <rect width="${W}" height="${H}" fill="url(#bg)"/>
-    <path d="${grid.join('')}" fill="none" stroke="#c9c9d6" stroke-opacity="0.55" stroke-width="1.5" stroke-linejoin="round"/>
-    <circle cx="${PX}" cy="${PY}" r="110" fill="url(#well)"/>
-    <circle cx="${PX}" cy="${PY}" r="92" fill="url(#glow)"/>
-    <rect width="${W}" height="${H}" fill="url(#vignette)"/>
-    <g fill="none" stroke="#f76b15">
-      <circle cx="${PX}" cy="${PY}" r="42" stroke-opacity="0.6" stroke-width="1.5"/>
-      <circle cx="${PX}" cy="${PY}" r="62" stroke-opacity="0.3" stroke-width="1.5"/>
-      <circle cx="${PX}" cy="${PY}" r="86" stroke-opacity="0.14" stroke-width="1.5"/>
-    </g>
-    <g filter="url(#shadow)">
-      <circle cx="${PX}" cy="${PY}" r="26" fill="#fff"/>
-      <circle cx="${PX}" cy="${PY}" r="20" fill="url(#dot)"/>
-    </g>`;
-</script>
+  <text x="32" y="70" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, 'TeX Gyre Pagella', 'URW Palladio L', 'Book Antiqua', Georgia, serif"
+    font-weight="700" font-size="46" letter-spacing="-0.9" fill="#2a241e">Poke UI</text>
+
+  <!-- The element, its highlight, and the pin whose sharp corner points into it. -->
+  <rect x="84" y="172" width="136" height="44" rx="22" fill="#1f4d3a"/>
+  <text x="152" y="199" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif"
+    font-size="15" font-weight="600" fill="#fff">Start growing</text>
+  <rect x="78" y="166" width="148" height="56" rx="3" fill="#b4432a" fill-opacity=".08" stroke="#b4432a" stroke-width="2.5"/>
+  <!-- tagPath(44, 130, 40, 3): tip at (84, 170) -->
+  <path d="M64 130H64A20 20 0 0 1 84 150V167Q84 170 81 170H64A20 20 0 0 1 44 150A20 20 0 0 1 64 130Z"
+    fill="#b4432a" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <text x="64" y="157" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif"
+    font-size="20" font-weight="700" fill="#fff">1</text>
+
+  <!-- The pasted markdown. -->
+  <g font-family="ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace" font-size="12">
+    <text x="284" y="46" fill="#e9b95c" font-weight="700">### Annotation 1</text>
+    <text x="284" y="72" fill="#efe6d6">Make this the</text>
+    <text x="284" y="90" fill="#efe6d6">primary button</text>
+    <text x="284" y="116" fill="#9fb08a">- Selector:</text>
+    <text x="284" y="134" fill="#b0a493">`button.cta`</text>
+    <text x="284" y="160" fill="#9fb08a">- Box:</text>
+    <text x="284" y="178" fill="#b0a493">x=517 y=585</text>
+  </g>
+  <rect x="284" y="200" width="118" height="6" rx="1" fill="#3a332b"/>
+  <rect x="284" y="214" width="92" height="6" rx="1" fill="#3a332b"/>
+  <rect x="284" y="228" width="104" height="6" rx="1" fill="#3a332b"/>
+</svg>
 </body>
 </html>

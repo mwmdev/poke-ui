@@ -3,43 +3,54 @@
 <head>
   <meta charset="utf-8">
   <title>Paste</title>
+  <!-- The hand-off scene: the copied markdown pasted into an assistant's terminal. Full bleed, no window chrome.
+       The asset scripts fill it with window.showPaste(markdown, count). -->
   <style>
     * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
     body {
+      background: #1c1915;
+      color: #e8dcc6;
+      font: 15px/1.6 ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+    }
+    .top {
       display: flex;
       align-items: center;
-      justify-content: center;
-      background: #16161b;
-      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+      justify-content: space-between;
+      height: 44px;
+      padding: 0 32px;
+      border-bottom: 1px solid #332d26;
+      color: #7d7264;
+      font-size: 13px;
     }
-    .window {
-      display: flex;
-      flex-direction: column;
-      width: 1100px;
-      height: 680px;
-      overflow: hidden;
-      background: #1c1c1f;
-      border: 1px solid #2c2c33;
-      border-radius: 12px;
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
-    }
-    .bar { display: flex; gap: 8px; padding: 16px 18px; }
-    .bar i { width: 12px; height: 12px; border-radius: 50%; background: #55555e; }
-    .body { flex: 1; min-height: 0; padding: 4px 28px 0; overflow: hidden; }
-    .prompt { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; font-size: 15px; color: #e7e7ee; }
-    .prompt b { color: #e5484d; font-weight: 700; }
-    .chip { padding: 2px 10px; border-radius: 6px; background: #34343c; color: #a8a8b5; }
-    pre { margin: 0; font: inherit; font-size: 15px; line-height: 1.55; color: #e7e7ee; white-space: pre-wrap; word-break: break-word; }
+    .body { padding: 28px 64px 0; }
+    .prompt { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .prompt b { color: #e0795f; font-weight: 700; }
+    .chip { padding: 2px 10px; border: 1px solid #4a4238; border-radius: 2px; color: #b0a493; }
+    pre { margin: 0; font: inherit; white-space: pre-wrap; word-break: break-word; }
+    .h { color: #e9b95c; font-weight: 700; }
+    .k { color: #9fb08a; }
+    .fence { color: #7d7264; }
   </style>
 </head>
 <body>
-  <div class="window">
-    <div class="bar"><i></i><i></i><i></i></div>
-    <div class="body">
-      <div class="prompt"><b>&gt;</b><span class="chip" id="chip">[Pasted text]</span></div>
-      <pre id="out"></pre>
-    </div>
+  <div class="top"><span>~/glasshouse</span><span>assistant</span></div>
+  <div class="body">
+    <div class="prompt"><b>&gt;</b><span class="chip" id="chip">[Pasted text]</span></div>
+    <pre id="out"></pre>
   </div>
+  <script>
+    window.showPaste = (markdown, count) => {
+      document.querySelector('#chip').textContent = `[Pasted: ${count} annotation${count === 1 ? '' : 's'}]`;
+      const esc = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      document.querySelector('#out').innerHTML = markdown.split('\n').map((line) => {
+        if (line.startsWith('#')) return `<span class="h">${esc(line)}</span>`;
+        if (/^`{3,}/.test(line)) return `<span class="fence">${esc(line)}</span>`;
+        const key = line.match(/^- [^:]+:/);
+        if (key) return `<span class="k">${esc(key[0])}</span>${esc(line.slice(key[0].length))}`;
+        return esc(line);
+      }).join('\n');
+    };
+  </script>
 </body>
 </html>
