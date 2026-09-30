@@ -1,0 +1,12 @@
+{
+  "name": "anot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chromium extension: annotate page elements and copy them as markdown.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
