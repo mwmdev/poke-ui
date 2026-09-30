@@ -3,7 +3,7 @@
   <img src="store/assets/lockup-light.png" width="232" alt="Poke UI">
 </picture></p>
 
-Mark up a live web page like a printed proof. Point at an element, say what should change, and hand your AI coding assistant exactly what it needs to find it.
+Point at an element, say what should change, and hand your AI coding assistant exactly what it needs to find it.
 
 <img src="store/assets/demo.gif" width="800" alt="Poke UI demo: click the toolbar icon, click elements and type notes, copy everything as markdown, paste it into an AI assistant">
 
