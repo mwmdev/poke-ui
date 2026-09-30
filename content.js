@@ -13,10 +13,14 @@
     ['Red', '#e5484d'], ['Orange', '#f76b15'], ['Green', '#30a46c'], ['Blue', '#0090ff'], ['Purple', '#8e4ec6'],
   ];
   const COLOR_KEY = 'markerColor'; // global: applies to the markers on every page
+  const THEMES = ['auto', 'light', 'dark']; // the theme button cycles in this order
+  const THEME_LABELS = { auto: 'Theme: Auto', light: 'Theme: Light', dark: 'Theme: Dark' };
+  const THEME_KEY = 'theme'; // global, like the marker color
 
   let notes = [];
   let active = false;
   let color = COLORS[0][1];
+  let theme = THEMES[0];
   let pickerOpen = false;
 
   const pageKey = () => 'notes:' + location.href.split('#')[0];
@@ -24,10 +28,12 @@
   // ---------- storage ----------
   async function load() {
     const key = pageKey();
-    const stored = await chrome.storage.local.get([key, COLOR_KEY]);
+    const stored = await chrome.storage.local.get([key, COLOR_KEY, THEME_KEY]);
     notes = stored[key] || [];
     color = stored[COLOR_KEY] || COLORS[0][1];
+    theme = stored[THEME_KEY] || THEMES[0];
     applyColor();
+    applyTheme();
   }
   const save = () => chrome.storage.local.set({ [pageKey()]: notes });
 
@@ -144,6 +150,10 @@
     close: 'M6 6l12 12M18 6L6 18',
     copy: 'M9 9h11v11H9zM5 15V4h11',
     delete: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+    auto: 'M2 12a10 10 0 1 0 20 0a10 10 0 1 0-20 0M12 18a6 6 0 0 0 0-12v12z',
+    light: 'M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41'
+      + 'M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
+    dark: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
   };
   function setIcon(btn, icon, label) {
     btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="${ICONS[icon]}"/></svg>`;
@@ -162,6 +172,25 @@
     setIcon(b, icon, label);
     return b;
   }
+  // First click arms the button (red, confirmLabel); a second click within 3 s runs the action.
+  function confirmBtn(label, confirmLabel, icon, action, attrs = {}) {
+    const b = iconBtn(label, icon, attrs);
+    let timer;
+    b.addEventListener('click', () => {
+      if (!b.classList.contains('armed')) {
+        b.classList.add('armed');
+        setIcon(b, icon, confirmLabel);
+        timer = setTimeout(() => {
+          b.classList.remove('armed');
+          setIcon(b, icon, label);
+        }, 3000);
+        return;
+      }
+      clearTimeout(timer);
+      action();
+    });
+    return b;
+  }
 
   const CSS_TEXT = `
     [hidden] { display: none !important; }
@@ -170,8 +199,19 @@
       background: var(--pokeui-color); color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; pointer-events: auto;
       box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.35); }
     .highlight { position: fixed; border: 2px solid #3b82f6; background: rgba(59,130,246,.15); pointer-events: none; }
-    .panel, .editor { position: fixed; background: #1c1c1f; color: #f4f4f5; border-radius: 8px; pointer-events: auto;
-      box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+    .panel, .editor { position: fixed; border-radius: 8px; pointer-events: auto;
+      color-scheme: var(--pokeui-scheme, light dark);
+      --bg: light-dark(#ffffff, #1c1c1f);
+      --fg: light-dark(#18181b, #f4f4f5);
+      --surface: light-dark(#f4f4f5, #27272a);
+      --control: light-dark(#e4e4e7, #3f3f46);
+      --line: light-dark(#d4d4d8, #52525b);
+      --line-focus: light-dark(#a1a1aa, #71717a);
+      --muted: light-dark(#71717a, #a1a1aa);
+      --hint: light-dark(#a1a1aa, #71717a);
+      background: var(--bg); color: var(--fg);
+      border: 1px solid light-dark(rgba(0,0,0,.1), rgba(255,255,255,.1));
+      box-shadow: 0 6px 20px rgba(0,0,0,.18), 0 1px 3px rgba(0,0,0,.08); }
     .panel { right: 16px; top: 16px; width: 260px; max-height: 50vh; overflow: auto; padding: 8px; }
     .bar { display: flex; gap: 6px; }
     .panel .bar { align-items: center; }
@@ -180,32 +220,33 @@
     .grip { display: flex; align-items: center; height: 24px; cursor: grab; user-select: none; touch-action: none; }
     .grip svg { width: 16px; height: 16px; fill: currentColor; pointer-events: none; }
     .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; background: var(--pokeui-color); }
-    .swatches { display: flex; gap: 8px; padding: 2px 4px; }
+    .swatches { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
     .swatch { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
-    .swatch[aria-pressed="true"] { border-color: #fff; }
-    button { display: inline-flex; align-items: center; justify-content: center; color: inherit; background: #3f3f46;
+    .swatch[aria-pressed="true"] { border-color: var(--fg); }
+    .theme { margin-left: auto; padding: 4px; }
+    button { display: inline-flex; align-items: center; justify-content: center; color: inherit; background: var(--control);
       border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
     button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;
       stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
     button:disabled { opacity: .4; cursor: default; }
-    .row { display: flex; align-items: center; gap: 2px; padding-right: 4px; background: #27272a; border-radius: 6px; }
+    .row { display: flex; align-items: center; gap: 2px; padding-right: 4px; background: var(--surface); border-radius: 6px; }
     .row .open { flex: 1; min-width: 0; display: block; text-align: left; background: none;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row.missing .open { opacity: .5; text-decoration: line-through; }
-    .row .mini { padding: 4px; background: none; color: #a1a1aa; opacity: 0; }
+    .row .mini { padding: 4px; background: none; color: var(--muted); opacity: 0; }
     .row .mini svg { width: 14px; height: 14px; }
     .row:hover .mini, .row:focus-within .mini { opacity: 1; }
-    .row .mini:hover, .row .mini:focus-visible { background: #3f3f46; color: #f4f4f5; }
+    .row .mini:hover, .row .mini:focus-visible { background: var(--control); color: var(--fg); }
     .editor { width: 280px; padding: 8px; }
     .editor .field { position: relative; }
-    .editor input { display: block; width: 100%; padding: 6px 30px 6px 8px;
-      color: inherit; background: #27272a; border: 1px solid #52525b; border-radius: 6px; }
-    .editor input:focus { outline: none; border-color: #71717a; }
-    .enter-hint { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex;
-      color: #71717a; pointer-events: none; }
+    .editor textarea { display: block; width: 100%; max-height: 200px; padding: 6px 30px 6px 8px; resize: none;
+      field-sizing: content; overflow-y: auto; color: inherit; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; }
+    .editor textarea:focus { outline: none; border-color: var(--line-focus); }
+    .enter-hint { position: absolute; right: 8px; bottom: 9px; display: flex; color: var(--hint); pointer-events: none; }
     .enter-hint svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;
       stroke-linecap: round; stroke-linejoin: round; }
-    .armed { background: #b42318; }
+    .armed, .row .mini.armed { background: #b42318; color: #fff; opacity: 1; }
   `;
 
   const host = document.createElement('poke-ui-root');
@@ -218,7 +259,10 @@
   shadow.append(h('style', {}, CSS_TEXT), markersEl, highlightEl, panelEl, editorEl);
   document.documentElement.append(host);
   const applyColor = () => host.style.setProperty('--pokeui-color', color);
+  // 'auto' lets light-dark() follow the browser's prefers-color-scheme.
+  const applyTheme = () => host.style.setProperty('--pokeui-scheme', theme === 'auto' ? 'light dark' : theme);
   applyColor();
+  applyTheme();
 
   const firstLine = (t) => t.split('\n')[0];
   const indexOf = (id) => notes.findIndex((n) => n.id === id);
@@ -226,8 +270,12 @@
   function render() {
     markersEl.replaceChildren(...notes.map((n, i) => h('button', {
       class: 'marker', 'data-id': n.id, 'aria-label': `Note ${i + 1}`,
-      // Opening a note from its pin also brings up the panel (annotation mode).
-      onclick: () => { if (!active) setActive(true); openEditor({ id: n.id }); },
+      // A pin toggles its note; opening it also brings up the panel (annotation mode).
+      onclick: () => {
+        if (!editorEl.hidden && editorEl.dataset.id === n.id) return closeEditor();
+        if (!active) setActive(true);
+        openEditor({ id: n.id });
+      },
     }, String(i + 1))));
     position();
 
@@ -235,28 +283,25 @@
     if (!active) return;
     const copyAllBtn = iconBtn('Copy all', 'copy', { disabled: notes.length === 0 });
     copyAllBtn.addEventListener('click', () => copy(formatAll(), copyAllBtn));
-    const clearAllBtn = iconBtn('Clear all', 'delete', { disabled: notes.length === 0 });
-    let armTimer;
-    clearAllBtn.addEventListener('click', async () => {
-      if (!clearAllBtn.classList.contains('armed')) {
-        clearAllBtn.classList.add('armed');
-        setIcon(clearAllBtn, 'delete', 'Confirm clear all');
-        armTimer = setTimeout(() => {
-          clearAllBtn.classList.remove('armed');
-          setIcon(clearAllBtn, 'delete', 'Clear all');
-        }, 3000);
-        return;
-      }
-      clearTimeout(armTimer);
+    const clearAllBtn = confirmBtn('Clear all', 'Confirm clear all', 'delete', async () => {
       notes = [];
       await save();
       closeEditor();
       render();
-    });
+    }, { disabled: notes.length === 0 });
     const colorBtn = h('button', {
       class: 'color', 'aria-label': 'Marker color', title: 'Marker color', 'aria-expanded': String(pickerOpen),
       onclick: () => { pickerOpen = !pickerOpen; render(); },
     }, h('span', { class: 'dot' }));
+    const themeBtn = iconBtn(THEME_LABELS[theme], theme, {
+      class: 'theme',
+      onclick: async () => {
+        theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+        applyTheme();
+        render();
+        await chrome.storage.local.set({ [THEME_KEY]: theme });
+      },
+    });
     const swatches = h('div', { class: 'swatches' }, ...COLORS.map(([name, value]) => h('button', {
       class: 'swatch', style: `background: ${value}`, 'aria-label': name, title: name,
       'aria-pressed': String(value === color),
@@ -267,7 +312,7 @@
         render();
         await chrome.storage.local.set({ [COLOR_KEY]: value });
       },
-    })));
+    })), themeBtn);
     panelEl.replaceChildren(
       h('div', { class: 'bar' }, grip(),
         colorBtn, copyAllBtn, clearAllBtn, iconBtn('Done', 'close', { class: 'done', onclick: () => setActive(false) })),
@@ -278,15 +323,12 @@
         return h('div', { class: 'row' + (resolve(n.selector) ? '' : ' missing') },
           h('button', { class: 'open', onclick: () => openEditor({ id: n.id }) }, `${i + 1}  ${firstLine(n.text)}`),
           copyBtn,
-          iconBtn(`Delete note ${i + 1}`, 'delete', {
-            class: 'mini',
-            onclick: async () => {
-              notes = notes.filter((x) => x.id !== n.id);
-              await save();
-              if (editorEl.dataset.id === n.id) closeEditor();
-              render();
-            },
-          }));
+          confirmBtn(`Delete note ${i + 1}`, `Confirm delete note ${i + 1}`, 'delete', async () => {
+            notes = notes.filter((x) => x.id !== n.id);
+            await save();
+            if (editorEl.dataset.id === n.id) closeEditor();
+            render();
+          }, { class: 'mini' }));
       }),
     );
   }
@@ -346,11 +388,12 @@
     const existing = id && notes[indexOf(id)];
     const anchor = target || (existing && resolve(existing.selector));
 
-    // Enter saves; Esc cancels via the window-level keydown handler. Copy and delete live on the panel rows.
-    const input = h('input', { type: 'text', 'aria-label': 'Note', placeholder: 'Note', autocomplete: 'off' });
+    // One line that grows as the text wraps. Enter saves (Shift+Enter adds a line break); Esc cancels via the
+    // window-level keydown handler. Copy and delete live on the panel rows.
+    const input = h('textarea', { rows: 1, 'aria-label': 'Note', placeholder: 'Note', autocomplete: 'off' });
     input.value = existing ? existing.text : '';
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); onSave(); }
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); onSave(); }
     });
 
     async function onSave() {
@@ -382,6 +425,8 @@
   function closeEditor() {
     editorEl.hidden = true;
     editorEl.replaceChildren();
+    // Removing the focused field leaves a caret in our UI (it lands in the panel's note list); drop it.
+    shadow.getSelection().removeAllRanges();
     selected = null;
     highlight(null);
   }
@@ -437,9 +482,13 @@
       color = changes[COLOR_KEY].newValue || COLORS[0][1];
       applyColor();
     }
+    if (changes[THEME_KEY]) {
+      theme = changes[THEME_KEY].newValue || THEMES[0];
+      applyTheme();
+    }
     const change = changes[pageKey()];
     if (change) notes = change.newValue || [];
-    if (change || changes[COLOR_KEY]) render();
+    if (change || changes[COLOR_KEY] || changes[THEME_KEY]) render();
   });
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

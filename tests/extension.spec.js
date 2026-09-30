@@ -81,8 +81,11 @@ test('annotate, persist, edit, delete, copy one and all', async ({ context, serv
   await page.getByRole('textbox', { name: 'Note' }).fill('Make the button green');
   await page.getByRole('textbox', { name: 'Note' }).press('Enter');
 
-  // Delete note 2 from its panel row, then add a third note.
+  // Delete note 2 from its panel row (the first click only arms it), then add a third note.
   await button('Delete note 2').click();
+  await expect(button('Confirm delete note 2')).toBeVisible();
+  await expect(markers).toHaveCount(2);
+  await button('Confirm delete note 2').click();
   await expect(markers).toHaveCount(1);
   await expect(page.locator('poke-ui-root .row')).toHaveText(['1  Make the button green']);
   await addNote('title', 'Tighten the heading');
@@ -259,6 +262,8 @@ test('Enter saves a note and Esc cancels the editor', async ({ context, server }
   await expect(editor).toBeHidden();
   await expect(markers).toHaveCount(1);
   await expect(rows).toHaveText(['1  Bigger button']);
+  // No caret is left behind in the panel (it used to land at the end of the new row's text).
+  expect(await page.evaluate(() => document.querySelector('poke-ui-root').shadowRoot.getSelection().rangeCount)).toBe(0);
 
   // Esc on a new note discards it.
   await page.locator('[data-testid="title"]').click();
@@ -280,6 +285,34 @@ test('Enter saves a note and Esc cancels the editor', async ({ context, server }
 
   // Esc only closed the editor, not annotation mode.
   await expect(page.locator('poke-ui-root .panel')).toBeVisible();
+
+  // Clicking a pin again closes its note; clicking once more reopens it with the saved text.
+  const pin = page.getByRole('button', { name: 'Note 1', exact: true });
+  await pin.click();
+  await expect(editor).toBeVisible();
+  await pin.click();
+  await expect(editor).toBeHidden();
+  await expect(page.locator('poke-ui-root .highlight')).toBeHidden();
+  await expect(page.locator('poke-ui-root .panel')).toBeVisible();
+  await pin.click();
+  await expect(field).toHaveValue('Much bigger button');
+  await field.press('Escape');
+
+  // The field starts one line tall and grows as the text wraps; Enter still saves without a line break.
+  await page.locator('[data-testid="title"]').click();
+  const height = async () => (await field.boundingBox()).height;
+  const oneLine = await height();
+  await field.pressSequentially('Tighten the heading and reduce');
+  expect(await height()).toBe(oneLine);
+  await field.pressSequentially(' the space below it so the list starts closer to it');
+  const grown = await height();
+  expect(grown).toBeGreaterThan(oneLine * 1.5);
+  await field.pressSequentially(' please');
+  await field.press('Enter');
+  await expect(editor).toBeHidden();
+  await expect(rows.nth(1)).toHaveText(
+    '2  Tighten the heading and reduce the space below it so the list starts closer to it please',
+  );
 });
 
 test('the element of the open note stays highlighted', async ({ context, server }) => {
@@ -325,4 +358,69 @@ test('the element of the open note stays highlighted', async ({ context, server 
   expect(await boxOf(highlight)).toEqual(await boxOf(buy));
   await field.press('Escape');
   await expect(highlight).toBeHidden();
+});
+
+test('theme button cycles Auto, Light and Dark and applies everywhere', async ({ context, server }) => {
+  let [worker] = context.serviceWorkers();
+  worker ||= await context.waitForEvent('serviceworker');
+  const toggle = () => worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    await toggleTab(tab);
+  });
+  const DARK = 'rgb(28, 28, 31)';
+  const LIGHT = 'rgb(255, 255, 255)';
+  const bg = (page, part) => page.locator(`poke-ui-root .${part}`).evaluate((el) => getComputedStyle(el).backgroundColor);
+  const themeBtn = (page, name) => page.getByRole('button', { name: `Theme: ${name}`, exact: true });
+
+  const a = await context.newPage();
+  await a.goto(server);
+  await a.bringToFront();
+  await toggle();
+  await a.getByRole('button', { name: 'Marker color' }).click();
+
+  // Auto follows the browser's color scheme.
+  await a.emulateMedia({ colorScheme: 'dark' });
+  expect(await bg(a, 'panel')).toBe(DARK);
+  await a.emulateMedia({ colorScheme: 'light' });
+  expect(await bg(a, 'panel')).toBe(LIGHT);
+
+  // The theme button sits after the five colors, against the right edge of the row.
+  const [lastSwatch, btn, row] = await Promise.all([
+    a.locator('poke-ui-root .swatch').last().boundingBox(),
+    themeBtn(a, 'Auto').boundingBox(),
+    a.locator('poke-ui-root .swatches').boundingBox(),
+  ]);
+  expect(btn.x).toBeGreaterThan(lastSwatch.x + lastSwatch.width);
+  expect(Math.round(row.x + row.width - (btn.x + btn.width))).toBe(4);
+
+  // Light and Dark override the browser; the picker stays open while cycling.
+  await themeBtn(a, 'Auto').click();
+  await a.emulateMedia({ colorScheme: 'dark' });
+  await expect.poll(() => bg(a, 'panel')).toBe(LIGHT);
+  await themeBtn(a, 'Light').click();
+  await a.emulateMedia({ colorScheme: 'light' });
+  await expect.poll(() => bg(a, 'panel')).toBe(DARK);
+  await expect(themeBtn(a, 'Dark')).toBeVisible();
+
+  // Stored globally: another tab and a reload use it, including the note editor.
+  const b = await context.newPage();
+  await b.emulateMedia({ colorScheme: 'light' });
+  await b.goto(server + '?b');
+  await b.bringToFront();
+  await toggle();
+  await b.locator('[data-testid="buy"]').click();
+  expect(await bg(b, 'panel')).toBe(DARK);
+  expect(await bg(b, 'editor')).toBe(DARK);
+  await b.keyboard.press('Escape');
+  await a.reload();
+  await a.bringToFront();
+  await toggle();
+  await expect.poll(() => bg(a, 'panel')).toBe(DARK);
+
+  // Back to Auto.
+  await a.getByRole('button', { name: 'Marker color' }).click();
+  await themeBtn(a, 'Dark').click();
+  await expect(themeBtn(a, 'Auto')).toBeVisible();
+  await expect.poll(() => bg(a, 'panel')).toBe(LIGHT);
+  await expect.poll(() => bg(b, 'panel')).toBe(LIGHT);
 });

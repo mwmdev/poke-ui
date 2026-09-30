@@ -11,7 +11,7 @@ Chromium MV3 extension (plain JS, no build step). Annotate page elements, then c
 
 Notes are stored per page URL (without hash) in `chrome.storage.local` and survive reloads.
 
-The colored dot in the panel picks the marker color (five choices). It applies to every page and to the toolbar icon.
+The colored dot in the panel picks the marker color (five choices). It applies to every page and to the toolbar icon. The button at the end of that row cycles the panel and editor theme: Auto (follows the browser's light/dark setting), Light, Dark.
 
 ## Icons
 
