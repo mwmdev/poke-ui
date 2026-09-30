@@ -98,11 +98,7 @@ The tests load the extension in headless Chromium. The env var is only needed on
 | --- | --- |
 | `npm test` | Playwright end-to-end tests (`tests/`) |
 | `npm run package` | Builds `dist/poke-ui-<version>.zip` with only the runtime files |
-| `npm run store-assets` | Regenerates the three screenshots, the promo tile and this README's header lockup in `store/assets/` |
-| `npm run demo-video` | Records `store/assets/demo.mp4` (with title and end cards) and `demo.gif` (the demo only, at most 3 MB); needs `ffmpeg` |
 | `icons/build.sh` | Regenerates the logo, store icon and toolbar icons (needs `node`, `inkscape`, ImageMagick) |
-
-The asset scripts drive the real extension against a fictional plant shop (`store/demo.html`, served as `glasshouse.example`), so they need the same browser setup as the tests. `store/stage.mjs` serves the scenes and loads the extension; `store/overlay.mjs` draws the captions, cursor and click rings. The video's title and end cards are `store/card.html`, which also renders the header lockup.
 
 ```text
 manifest.json    MV3 manifest
@@ -110,6 +106,5 @@ background.js    toolbar click: inject content.js into the active tab, toggle it
 content.js       the whole UI (pins, panel, editor) in a shadow root, plus storage and markdown
 icons/           logo, generator (logo.mjs, build.sh) and the toolbar icons, one set per pin color
 tests/           Playwright tests and the fixture page
-store/           Web Store listing text, scenes, asset and video scripts
 scripts/         packaging
 ```
