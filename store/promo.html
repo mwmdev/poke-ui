@@ -4,33 +4,49 @@
   <meta charset="utf-8">
   <title>Promo tile</title>
   <style>
-    html, body { width: 440px; height: 280px; margin: 0; overflow: hidden; }
-    body {
-      position: relative;
-      background: linear-gradient(135deg, #34343c, #16161b);
-      font-family: system-ui, sans-serif;
-    }
-    img { position: absolute; left: 145px; top: 65px; width: 150px; height: 150px; }
-    .pin {
-      position: absolute;
-      width: 26px;
-      height: 26px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 3px solid #fff;
-      border-radius: 50%;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-    }
+    html, body { width: 440px; height: 280px; margin: 0; overflow: hidden; background: #16161b; }
+    svg { display: block; }
   </style>
 </head>
 <body>
-  <img src="/logo.svg" alt="">
-  <div class="pin" style="left: 57px; top: 57px; background: #e5484d">1</div>
-  <div class="pin" style="left: 347px; top: 77px; background: #0090ff">2</div>
-  <div class="pin" style="left: 317px; top: 202px; background: #30a46c">3</div>
+<svg id="art" width="440" height="280" viewBox="0 0 440 280" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+  // The logo's idea, full bleed: a page grid pulled into the point where it was poked (see icons/pinch.mjs).
+  const W = 440, H = 280, PX = 220, PY = 140, SP = 20, PULL = 0.86, SIGMA = 88;
+  const warp = (x, y) => {
+    const dx = PX - x, dy = PY - y;
+    const k = PULL * Math.exp(-(dx * dx + dy * dy) / (SIGMA * SIGMA));
+    return [x + dx * k, y + dy * k];
+  };
+  const line = (points) => 'M' + points.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L');
+  const span = (from, to) => { const out = []; for (let t = from; t <= to; t += 4) out.push(t); return out; };
+  const grid = [];
+  for (let x = PX % SP - 2 * SP; x <= W + 2 * SP; x += SP) grid.push(line(span(-40, H + 40).map((y) => warp(x, y))));
+  for (let y = PY % SP - 2 * SP; y <= H + 2 * SP; y += SP) grid.push(line(span(-40, W + 40).map((x) => warp(x, y))));
+
+  document.getElementById('art').innerHTML = `
+    <defs>
+      <radialGradient id="bg" cx="0.5" cy="0.5" r="0.75"><stop offset="0" stop-color="#2c2c35"/><stop offset="1" stop-color="#121216"/></radialGradient>
+      <radialGradient id="well" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.85"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#f76b15" stop-opacity="0.5"/><stop offset="1" stop-color="#f76b15" stop-opacity="0"/></radialGradient>
+      <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.72"><stop offset="0.45" stop-color="#0c0c10" stop-opacity="0"/><stop offset="1" stop-color="#0c0c10" stop-opacity="0.7"/></radialGradient>
+      <radialGradient id="dot" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#fbb98a"/><stop offset=".5" stop-color="#f76b15"/><stop offset="1" stop-color="#c0520f"/></radialGradient>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/></filter>
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#bg)"/>
+    <path d="${grid.join('')}" fill="none" stroke="#c9c9d6" stroke-opacity="0.55" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="${PX}" cy="${PY}" r="110" fill="url(#well)"/>
+    <circle cx="${PX}" cy="${PY}" r="92" fill="url(#glow)"/>
+    <rect width="${W}" height="${H}" fill="url(#vignette)"/>
+    <g fill="none" stroke="#f76b15">
+      <circle cx="${PX}" cy="${PY}" r="42" stroke-opacity="0.6" stroke-width="1.5"/>
+      <circle cx="${PX}" cy="${PY}" r="62" stroke-opacity="0.3" stroke-width="1.5"/>
+      <circle cx="${PX}" cy="${PY}" r="86" stroke-opacity="0.14" stroke-width="1.5"/>
+    </g>
+    <g filter="url(#shadow)">
+      <circle cx="${PX}" cy="${PY}" r="26" fill="#fff"/>
+      <circle cx="${PX}" cy="${PY}" r="20" fill="url(#dot)"/>
+    </g>`;
+</script>
 </body>
 </html>

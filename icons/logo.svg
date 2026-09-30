@@ -2,7 +2,7 @@
 <defs>
  <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34343c"/><stop offset="1" stop-color="#16161b"/></linearGradient>
  <radialGradient id="well" cx="0.5" cy="0.5" r="0.36"><stop offset="0" stop-color="#000000" stop-opacity="0.75"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
- <radialGradient id="dot" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#f19a9d"/><stop offset=".5" stop-color="#e5484d"/><stop offset="1" stop-color="#b3383c"/></radialGradient>
+ <radialGradient id="dot" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#fbae7e"/><stop offset=".5" stop-color="#f76b15"/><stop offset="1" stop-color="#c15310"/></radialGradient>
  <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
  <clipPath id="c"><rect x="4" y="4" width="120" height="120" rx="28"/></clipPath>
 </defs>

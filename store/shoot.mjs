@@ -18,7 +18,6 @@ const routes = {
   '/': ['store/demo.html', 'text/html'],
   '/paste': ['store/paste.html', 'text/html'],
   '/promo': ['store/promo.html', 'text/html'],
-  '/logo.svg': ['icons/logo.svg', 'image/svg+xml'],
 };
 const server = http.createServer((req, res) => {
   const route = routes[new URL(req.url, 'http://x').pathname];

@@ -9,7 +9,8 @@ SMALL='"sp":32,"s":0.75,"sw":6,"dotR":19,"ring":6,"rim":8'
 png() { inkscape "$1" --export-type=png --export-filename="$2" -w "$3" -h "$3" >/dev/null 2>&1; }
 
 tmp=$(mktemp -d)
-node pinch.mjs logo.svg
+# The logo (and so the 48/128 icons) uses the orange marker color; toolbar icons below cover every color.
+node pinch.mjs logo.svg '{"dot":"#f76b15"}'
 png logo.svg icon48.png 48
 # The Web Store wants 96x96 artwork inside a 128x128 icon, with 16px of transparent padding.
 # The logo's tile is 120x120 at (4,4) in its 128 viewBox: export just the tile at 96px.

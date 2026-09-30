@@ -6,7 +6,8 @@
   "scripts": {
     "test": "playwright test",
     "package": "bash scripts/package.sh",
-    "store-assets": "node store/shoot.mjs"
+    "store-assets": "node store/shoot.mjs",
+    "demo-video": "node store/record.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"
